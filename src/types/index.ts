@@ -4,7 +4,7 @@ export interface SKU {
   name: string;
   unitPrice: number;
   packType: string;
-  packType2?: string;
+  packType2: string;
 }
 
 export interface CartItem {
@@ -32,27 +32,41 @@ export interface Order {
   driver: string;
 }
 
+// Sales sheet record structure (matching your first image)
 export interface SalesRecord {
   timestamp: string;
+  transactionDate: string;
+  warehouse: string;
+  loadOut: string;
   skuName: string;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
+  skuQty: number;
+  skuPrice: number;
+  totalAmount: number;
+  packType: string;
+  driverSeller: string;
+  loader1: string;
+  loader2: string;
+  submittedBy: string;
   customerName: string;
   customerAddress: string;
   customerPhone: string;
-  driver: string;
   paymentMethod: string;
   amountPaid: number;
   balance: number;
 }
 
+// Payment sheet record structure (matching your third image)
 export interface PaymentRecord {
   timestamp: string;
+  deliveryDate: string;
+  bank: string;
+  warehouse: string;
+  driver: string;
   customerName: string;
   amount: number;
-  paymentMethod: string;
-  reference: string;
+  useNow: string;
+  forwardedDate: string;
+  newDate: string;
 }
 
 export interface AppConfig {
@@ -64,4 +78,5 @@ export interface AppConfig {
   companyName: string;
   companyAddress: string;
   companyPhone: string;
+  googleSheetsApiKey: string;
 }

@@ -32,49 +32,43 @@ const Index = () => {
     salesSheetGid: '311399969',
     priceSheetGid: '1324216461',
     paymentsSheetGid: '495567720',
-    drivers: ['DEPOT BULK'],
-    companyName: 'Your Company Name',
-    companyAddress: '123 Business St, City, State 12345',
-    companyPhone: '(555) 123-4567'
+    drivers: ['DEPOT BULK', 'ALABI MUSIBAU', 'LAWAL WILLIAMS'],
+    companyName: 'Depot Sales Company',
+    companyAddress: 'Warehouse 1 - A Load Out',
+    companyPhone: '+234 XXX XXX XXXX',
+    googleSheetsApiKey: ''
   });
 
   const sheetsService = GoogleSheetsService.getInstance();
 
   useEffect(() => {
+    if (config.googleSheetsApiKey) {
+      sheetsService.setApiKey(config.googleSheetsApiKey);
+    }
     loadSKUData();
   }, [config]);
 
   const loadSKUData = async () => {
     setIsLoading(true);
     try {
-      // Mock data for demonstration since we don't have API key configured
-      const mockSKUs: SKU[] = [
-        { id: 'sku-1', name: 'Premium Coffee Beans', unitPrice: 15.99, packType: '1lb Bag', packType2: 'Whole Bean' },
-        { id: 'sku-2', name: 'Organic Tea Blend', unitPrice: 12.50, packType: '20 Tea Bags', packType2: 'Herbal' },
-        { id: 'sku-3', name: 'Artisan Chocolate', unitPrice: 8.75, packType: '4oz Bar', packType2: 'Dark 70%' },
-        { id: 'sku-4', name: 'Fresh Pastries', unitPrice: 3.25, packType: 'Individual', packType2: 'Croissant' },
-        { id: 'sku-5', name: 'Specialty Milk', unitPrice: 4.50, packType: '1L Carton', packType2: 'Oat Milk' }
-      ];
-      setSKUs(mockSKUs);
+      const skuData = await sheetsService.getSKUData(config);
+      setSKUs(skuData);
       
       toast({
         title: "SKU Data Loaded",
-        description: "Product catalog has been loaded successfully.",
+        description: `${skuData.length} products loaded from catalog.`,
       });
     } catch (error) {
       console.error('Error loading SKU data:', error);
       toast({
         title: "Error Loading Data",
-        description: "Failed to load product catalog. Using demo data.",
+        description: "Failed to load product catalog. Using offline data.",
         variant: "destructive",
       });
       
-      // Use demo data as fallback
-      const demoSKUs: SKU[] = [
-        { id: 'demo-1', name: 'Demo Product 1', unitPrice: 10.00, packType: 'Demo Pack', packType2: '' },
-        { id: 'demo-2', name: 'Demo Product 2', unitPrice: 25.00, packType: 'Demo Pack', packType2: '' }
-      ];
-      setSKUs(demoSKUs);
+      // Use the real SKU data as fallback
+      const fallbackSKUs = await sheetsService.getSKUData(config);
+      setSKUs(fallbackSKUs);
     } finally {
       setIsLoading(false);
     }
@@ -160,18 +154,18 @@ const Index = () => {
         driver: config.drivers[0] || 'DEPOT BULK'
       };
 
-      // Here we would normally write to Google Sheets
-      console.log('Order completed:', order);
+      // Write to Google Sheets
+      console.log('Writing order to Google Sheets:', order);
       
-      // For demo purposes, we'll simulate the API calls
-      await simulateGoogleSheetsWrite(order);
+      await sheetsService.writeSalesRecord(order, config);
+      await sheetsService.writePaymentRecord(order, config);
       
       setCurrentOrder(order);
       setActiveTab('receipt');
       
       toast({
         title: "Order Completed!",
-        description: `Order ${order.id} has been processed successfully.`,
+        description: `Order ${order.id} has been processed and recorded.`,
       });
       
     } catch (error) {
