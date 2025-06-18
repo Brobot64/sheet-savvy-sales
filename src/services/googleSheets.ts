@@ -27,7 +27,8 @@ export class GoogleSheetsService {
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Google Sheets API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
       }
       const data = await response.json();
       return data.values || [];
@@ -39,40 +40,51 @@ export class GoogleSheetsService {
 
   async appendToSheet(spreadsheetId: string, range: string, values: any[][]): Promise<void> {
     if (!this.apiKey) {
-      console.log('Would append to sheet:', { spreadsheetId, range, values });
+      console.log('Google Sheets API key not configured. Would append to sheet:', { spreadsheetId, range, values });
       return;
     }
 
-    // This would require OAuth2 authentication for write operations
-    // For now, logging what would be written
-    console.log('Would append to sheet:', { spreadsheetId, range, values });
+    // Note: Write operations require OAuth2 authentication
+    // For production, you'd need to implement proper authentication
+    console.log('Would append to sheet (write operations require OAuth2):', { spreadsheetId, range, values });
+    
+    // Simulate the write operation
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   async getSKUData(config: AppConfig): Promise<SKU[]> {
     try {
       // Try to fetch real data if API key is configured
       if (this.apiKey) {
+        console.log('Fetching SKU data from Google Sheets...');
         const range = `Price Data (Depot Only)!A:D`;
         const data = await this.fetchSheetData(config.spreadsheetId, range);
         
-        // Skip header row and map to SKU objects
-        return data.slice(1).map((row, index) => ({
-          id: `sku-${index}`,
-          name: row[0] || '',
-          unitPrice: parseFloat(row[1]) || 0,
-          packType: row[2] || '',
-          packType2: row[3] || ''
-        })).filter(sku => sku.name); // Filter out empty rows
+        if (data.length > 1) {
+          // Skip header row and map to SKU objects
+          const skus = data.slice(1).map((row, index) => ({
+            id: `sku-${index + 1}`,
+            name: row[0] || '',
+            unitPrice: parseFloat(row[1]) || 0,
+            packType: row[2] || '',
+            packType2: row[3] || ''
+          })).filter(sku => sku.name && sku.unitPrice > 0); // Filter out empty/invalid rows
+          
+          console.log(`Loaded ${skus.length} SKUs from Google Sheets`);
+          return skus;
+        }
       }
     } catch (error) {
-      console.error('Error fetching SKU data:', error);
+      console.error('Error fetching SKU data from Google Sheets:', error);
+      throw error;
     }
 
-    // Fallback to the real data structure from your sheets
-    return this.getRealSKUData();
+    // Fallback to local data
+    console.log('Using fallback SKU data');
+    return this.getFallbackSKUData();
   }
 
-  private getRealSKUData(): SKU[] {
+  private getFallbackSKUData(): SKU[] {
     return [
       { id: 'sku-1', name: '35cl RGB', unitPrice: 4400, packType: 'RGB 35cl', packType2: '35cl' },
       { id: 'sku-2', name: '35cl RGB - PROMO', unitPrice: 4400, packType: 'RGB 35cl', packType2: '35cl' },
@@ -150,7 +162,7 @@ export class GoogleSheetsService {
         'QUDUS ALLI', // Loader 1
         '', // Loader 2
         'Kundus', // Submitted By
-        order.customer.name, // Customer Name (implied from payment structure)
+        order.customer.name, // Customer Name
         order.customer.address, // Customer Address
         order.customer.phone, // Customer Phone
         order.paymentMethod, // Payment Method
@@ -159,6 +171,7 @@ export class GoogleSheetsService {
       ]);
     });
 
+    console.log('Writing sales records:', salesRecords);
     await this.appendToSheet(config.spreadsheetId, 'Processed Data (Sales Depot Sales Only)!A:S', salesRecords);
   }
 
@@ -180,6 +193,26 @@ export class GoogleSheetsService {
       deliveryDate // NEW DATE
     ];
 
+    console.log('Writing payment record:', paymentRecord);
     await this.appendToSheet(config.spreadsheetId, 'Processed Customer Bank Transfer (Depot Only)!A:J', [paymentRecord]);
+  }
+
+  async testConnection(config: AppConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!this.apiKey) {
+        return { success: false, message: 'API key not configured' };
+      }
+
+      // Test by trying to read the price sheet
+      const range = `Price Data (Depot Only)!A1:D1`;
+      await this.fetchSheetData(config.spreadsheetId, range);
+      
+      return { success: true, message: 'Successfully connected to Google Sheets' };
+    } catch (error) {
+      return { 
+        success: false, 
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
   }
 }

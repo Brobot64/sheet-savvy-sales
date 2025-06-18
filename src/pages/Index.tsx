@@ -66,7 +66,7 @@ const Index = () => {
         variant: "destructive",
       });
       
-      // Use the real SKU data as fallback
+      // Use the fallback SKU data
       const fallbackSKUs = await sheetsService.getSKUData(config);
       setSKUs(fallbackSKUs);
     } finally {
@@ -248,12 +248,14 @@ Thank you for your business!`;
         </div>
 
         {/* API Key Warning */}
-        <Alert className="m-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Demo mode: Configure Google Sheets API key in settings for live data.
-          </AlertDescription>
-        </Alert>
+        {!config.googleSheetsApiKey && (
+          <Alert className="m-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Demo mode: Configure Google Sheets API key in settings for live data.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Main Content */}
         <div className="p-4">

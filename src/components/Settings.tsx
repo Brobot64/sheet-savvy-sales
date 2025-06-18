@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Plus, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AppConfig } from '@/types';
+import { GoogleSheetsService } from '@/services/googleSheets';
 
 interface SettingsProps {
   config: AppConfig;
@@ -16,6 +18,8 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
   const [editedConfig, setEditedConfig] = useState<AppConfig>(config);
   const [isOpen, setIsOpen] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const handleSave = () => {
     onSave(editedConfig);
@@ -43,6 +47,18 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
     }));
   };
 
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    setTestResult(null);
+    
+    const sheetsService = GoogleSheetsService.getInstance();
+    sheetsService.setApiKey(editedConfig.googleSheetsApiKey);
+    
+    const result = await sheetsService.testConnection(editedConfig);
+    setTestResult(result);
+    setIsTestingConnection(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -56,6 +72,55 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
         </DialogHeader>
         
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Google Sheets API</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>API Key</Label>
+                <Input
+                  type="password"
+                  value={editedConfig.googleSheetsApiKey}
+                  onChange={(e) => setEditedConfig(prev => ({
+                    ...prev,
+                    googleSheetsApiKey: e.target.value
+                  }))}
+                  placeholder="Enter Google Sheets API key"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Get your API key from Google Cloud Console
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={testConnection}
+                  disabled={!editedConfig.googleSheetsApiKey || isTestingConnection}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <TestTube className="h-4 w-4 mr-1" />
+                  {isTestingConnection ? 'Testing...' : 'Test Connection'}
+                </Button>
+              </div>
+              
+              {testResult && (
+                <Alert className={testResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                  {testResult.success ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  )}
+                  <AlertDescription className={testResult.success ? 'text-green-800' : 'text-red-800'}>
+                    {testResult.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Google Sheets Configuration</CardTitle>
