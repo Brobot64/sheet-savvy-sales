@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, CreditCard, Receipt, AlertCircle } from 'lucide-react';
+import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -288,7 +287,7 @@ Thank you for your business!`;
                   <CreditCard className="h-4 w-4" />
                 </TabsTrigger>
                 <TabsTrigger value="summary" className="text-xs">
-                  <Receipt className="h-4 w-4" />
+                  <ReceiptIcon className="h-4 w-4" />
                 </TabsTrigger>
               </TabsList>
 
