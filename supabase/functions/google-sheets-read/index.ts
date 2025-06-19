@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,13 +38,24 @@ serve(async (req) => {
       iat: now
     }
 
-    // Import crypto for JWT signing
+    // Process the private key properly
     const encoder = new TextEncoder()
-    const keyData = credentials.private_key.replace(/\\n/g, '\n')
+    let privateKey = credentials.private_key
+    
+    // Remove the header and footer lines and any whitespace/newlines
+    privateKey = privateKey
+      .replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\\n/g, '')
+      .replace(/\n/g, '')
+      .replace(/\s/g, '')
+    
+    // Decode from base64
+    const binaryKey = Uint8Array.from(atob(privateKey), c => c.charCodeAt(0))
     
     const key = await crypto.subtle.importKey(
       'pkcs8',
-      encoder.encode(keyData),
+      binaryKey,
       {
         name: 'RSASSA-PKCS1-v1_5',
         hash: 'SHA-256',
@@ -84,6 +94,7 @@ serve(async (req) => {
 
     const tokenData = await tokenResponse.json()
     if (!tokenData.access_token) {
+      console.error('Token response:', tokenData)
       throw new Error('Failed to get access token')
     }
 

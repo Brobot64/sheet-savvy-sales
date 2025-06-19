@@ -22,7 +22,7 @@ serve(async (req) => {
 
     const credentials = JSON.parse(serviceAccountKey)
     
-    // Create JWT for Google API authentication (same process as read function)
+    // Create JWT for Google API authentication
     const header = {
       alg: 'RS256',
       typ: 'JWT',
@@ -38,12 +38,24 @@ serve(async (req) => {
       iat: now
     }
 
+    // Process the private key properly
     const encoder = new TextEncoder()
-    const keyData = credentials.private_key.replace(/\\n/g, '\n')
+    let privateKey = credentials.private_key
+    
+    // Remove the header and footer lines and any whitespace/newlines
+    privateKey = privateKey
+      .replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\\n/g, '')
+      .replace(/\n/g, '')
+      .replace(/\s/g, '')
+    
+    // Decode from base64
+    const binaryKey = Uint8Array.from(atob(privateKey), c => c.charCodeAt(0))
     
     const key = await crypto.subtle.importKey(
       'pkcs8',
-      encoder.encode(keyData),
+      binaryKey,
       {
         name: 'RSASSA-PKCS1-v1_5',
         hash: 'SHA-256',
@@ -52,6 +64,7 @@ serve(async (req) => {
       ['sign']
     )
 
+    // Create JWT
     const headerB64 = btoa(JSON.stringify(header)).replace(/[+/=]/g, (m) => ({'+': '-', '/': '_', '=': ''}[m]))
     const payloadB64 = btoa(JSON.stringify(payload)).replace(/[+/=]/g, (m) => ({'+': '-', '/': '_', '=': ''}[m]))
     const dataToSign = `${headerB64}.${payloadB64}`
@@ -81,6 +94,7 @@ serve(async (req) => {
 
     const tokenData = await tokenResponse.json()
     if (!tokenData.access_token) {
+      console.error('Token response:', tokenData)
       throw new Error('Failed to get access token')
     }
 
