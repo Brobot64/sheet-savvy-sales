@@ -12,6 +12,15 @@ interface CartProps {
 }
 
 const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const total = items.reduce((sum, item) => sum + item.lineTotal, 0);
 
   if (items.length === 0) {
@@ -29,12 +38,12 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) =>
       <CardHeader>
         <CardTitle className="text-lg">Cart ({items.length} items)</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {items.map((item, index) => (
           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div className="flex-1">
               <h4 className="font-medium text-sm">{item.sku.name}</h4>
-              <p className="text-xs text-gray-600">${item.sku.unitPrice.toFixed(2)} each</p>
+              <p className="text-xs text-gray-600">{formatCurrency(item.sku.unitPrice)} each</p>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -43,6 +52,7 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) =>
                 size="sm"
                 onClick={() => onUpdateQuantity(index, item.quantity - 1)}
                 disabled={item.quantity <= 1}
+                className="h-8 w-8 p-0"
               >
                 <Minus className="h-3 w-3" />
               </Button>
@@ -53,6 +63,7 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) =>
                 variant="outline"
                 size="sm"
                 onClick={() => onUpdateQuantity(index, item.quantity + 1)}
+                className="h-8 w-8 p-0"
               >
                 <Plus className="h-3 w-3" />
               </Button>
@@ -61,13 +72,14 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) =>
                 variant="destructive"
                 size="sm"
                 onClick={() => onRemoveItem(index)}
+                className="h-8 w-8 p-0"
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
             
-            <div className="ml-4 font-bold text-green-600">
-              ${item.lineTotal.toFixed(2)}
+            <div className="ml-3 font-bold text-green-600 text-sm min-w-[80px] text-right">
+              {formatCurrency(item.lineTotal)}
             </div>
           </div>
         ))}
@@ -75,7 +87,7 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateQuantity, onRemoveItem }) =>
         <div className="border-t pt-4">
           <div className="flex justify-between items-center text-lg font-bold">
             <span>Total:</span>
-            <span className="text-green-600">${total.toFixed(2)}</span>
+            <span className="text-green-600">{formatCurrency(total)}</span>
           </div>
         </div>
       </CardContent>

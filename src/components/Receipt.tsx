@@ -3,6 +3,7 @@ import React from 'react';
 import { Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Order, AppConfig } from '@/types';
 
 interface ReceiptProps {
@@ -48,22 +49,33 @@ const Receipt: React.FC<ReceiptProps> = ({ order, config, onShareWhatsApp }) => 
         
         <div className="border-t pt-4">
           <h3 className="font-semibold mb-3">Items:</h3>
-          {order.items.map((item, index) => (
-            <div key={index} className="flex justify-between text-sm mb-2">
-              <div className="flex-1">
-                <div className="font-medium">{item.sku.name}</div>
-                <div className="text-gray-600 text-xs">
-                  {item.sku.packType} • {item.sku.packType2}
-                </div>
-                <div className="text-gray-600">
-                  {item.quantity} × {formatCurrency(item.sku.unitPrice)}
-                </div>
-              </div>
-              <div className="font-semibold">
-                {formatCurrency(item.lineTotal)}
-              </div>
-            </div>
-          ))}
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8 p-2">S/No</TableHead>
+                <TableHead className="p-2">SKU</TableHead>
+                <TableHead className="w-12 p-2 text-center">Qty</TableHead>
+                <TableHead className="w-16 p-2 text-right">Unit Price</TableHead>
+                <TableHead className="w-16 p-2 text-right">Subtotal</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {order.items.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell className="p-2 font-medium">{index + 1}</TableCell>
+                  <TableCell className="p-2">
+                    <div className="font-medium">{item.sku.name}</div>
+                    <div className="text-gray-600 text-xs">
+                      {item.sku.packType} • {item.sku.packType2}
+                    </div>
+                  </TableCell>
+                  <TableCell className="p-2 text-center">{item.quantity}</TableCell>
+                  <TableCell className="p-2 text-right">{formatCurrency(item.sku.unitPrice)}</TableCell>
+                  <TableCell className="p-2 text-right font-semibold">{formatCurrency(item.lineTotal)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
         
         <div className="border-t pt-4 space-y-2">

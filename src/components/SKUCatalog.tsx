@@ -17,6 +17,15 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   const [filteredSkus, setFilteredSkus] = useState<SKU[]>([]);
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   useEffect(() => {
     const filtered = skus.filter(sku =>
       sku.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,11 +78,11 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
         />
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="grid grid-cols-1 gap-2 max-h-[70vh] overflow-y-auto">
         {filteredSkus.map((sku) => (
           <Card key={sku.id} className="border border-gray-200">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-3">
+            <CardContent className="p-3">
+              <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <h3 className="font-semibold text-sm">{sku.name}</h3>
                   <p className="text-gray-600 text-xs">{sku.packType}</p>
@@ -82,8 +91,8 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-green-600">
-                    ${sku.unitPrice.toFixed(2)}
+                  <span className="font-bold text-green-600 text-sm">
+                    {formatCurrency(sku.unitPrice)}
                   </span>
                 </div>
               </div>
@@ -95,16 +104,16 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
                   value={quantities[sku.id] || ''}
                   onChange={(e) => handleQuantityChange(sku.id, parseInt(e.target.value) || 0)}
                   placeholder="Qty"
-                  className="w-20 text-center"
+                  className="w-16 text-center h-8 text-sm"
                 />
                 <Button
                   onClick={() => handleAddToCart(sku)}
                   disabled={!quantities[sku.id] || quantities[sku.id] <= 0}
-                  className="flex-1"
+                  className="flex-1 h-8 text-xs"
                   size="sm"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add to Cart
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
                 </Button>
               </div>
             </CardContent>

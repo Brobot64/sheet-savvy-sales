@@ -189,11 +189,28 @@ const Index = () => {
   const handleShareWhatsApp = () => {
     if (!currentOrder) return;
     
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    };
+    
+    let itemsList = '';
+    currentOrder.items.forEach((item, index) => {
+      itemsList += `${index + 1}. ${item.sku.name} - Qty: ${item.quantity} x ${formatCurrency(item.sku.unitPrice)} = ${formatCurrency(item.lineTotal)}\n`;
+    });
+    
     const message = `Receipt for Order ${currentOrder.id}
 Customer: ${currentOrder.customer.name}
-Total: $${currentOrder.total.toFixed(2)}
-Paid: $${currentOrder.amountPaid.toFixed(2)}
-${currentOrder.balance > 0 ? `Balance: $${currentOrder.balance.toFixed(2)}` : 'Paid in Full'}
+
+ITEMS:
+${itemsList}
+Total: ${formatCurrency(currentOrder.total)}
+Paid: ${formatCurrency(currentOrder.amountPaid)}
+${currentOrder.balance > 0 ? `Balance: ${formatCurrency(currentOrder.balance)}` : 'Paid in Full'}
 
 Thank you for your business!`;
     
@@ -264,7 +281,7 @@ Thank you for your business!`;
                           Cart: {cartItems.length} items
                         </span>
                         <span className="font-bold text-green-600">
-                          ${getOrderTotal().toFixed(2)}
+                          ₦{getOrderTotal().toLocaleString()}
                         </span>
                       </div>
                     </CardContent>
@@ -311,9 +328,9 @@ Thank you for your business!`;
                   <CardContent className="p-4 space-y-2">
                     <h3 className="font-semibold">Payment:</h3>
                     <p className="text-sm">Method: {paymentMethod || 'Not selected'}</p>
-                    <p className="text-sm">Amount: ${amountPaid.toFixed(2)}</p>
+                    <p className="text-sm">Amount: ₦{amountPaid.toLocaleString()}</p>
                     <p className="text-sm">
-                      Balance: ${Math.max(0, getOrderTotal() - amountPaid).toFixed(2)}
+                      Balance: ₦{Math.max(0, getOrderTotal() - amountPaid).toLocaleString()}
                     </p>
                   </CardContent>
                 </Card>
