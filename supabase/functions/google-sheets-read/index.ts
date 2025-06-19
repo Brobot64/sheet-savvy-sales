@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -99,24 +98,25 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
-    // Properly encode the range for URLs - escape single quotes and wrap sheet names with spaces/special chars
-    let encodedRange = range
+    // Fix the range encoding for Google Sheets API
+    let finalRange = range
     if (range.includes('!')) {
       const [sheetName, cellRange] = range.split('!')
-      // If sheet name contains spaces or special characters, wrap it in single quotes
-      if (sheetName.includes(' ') || sheetName.includes('(') || sheetName.includes(')')) {
-        encodedRange = `'${sheetName}'!${cellRange}`
+      // Always wrap sheet names with spaces or special characters in single quotes
+      // and escape any existing single quotes in the sheet name
+      const escapedSheetName = sheetName.replace(/'/g, "''")
+      if (sheetName.includes(' ') || sheetName.includes('(') || sheetName.includes(')') || sheetName.includes('-')) {
+        finalRange = `'${escapedSheetName}'!${cellRange}`
       }
     }
     
-    // URL encode the range parameter
-    const urlEncodedRange = encodeURIComponent(encodedRange)
     console.log('Original range:', range)
-    console.log('Encoded range:', encodedRange)
-    console.log('URL encoded range:', urlEncodedRange)
+    console.log('Final range for API:', finalRange)
 
     // Use access token to read from Google Sheets
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${urlEncodedRange}`
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(finalRange)}`
+    console.log('Full API URL:', sheetsUrl)
+    
     const sheetsResponse = await fetch(sheetsUrl, {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -126,6 +126,7 @@ serve(async (req) => {
     if (!sheetsResponse.ok) {
       const errorData = await sheetsResponse.json().catch(() => ({}))
       console.error('Google Sheets API error:', sheetsResponse.status, errorData)
+      console.error('Request URL was:', sheetsUrl)
       throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorData.error?.message || sheetsResponse.statusText}`)
     }
 
@@ -150,4 +151,3 @@ serve(async (req) => {
     )
   }
 })
-
