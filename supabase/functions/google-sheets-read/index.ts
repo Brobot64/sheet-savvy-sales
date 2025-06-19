@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -98,8 +99,24 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
+    // Properly encode the range for URLs - escape single quotes and wrap sheet names with spaces/special chars
+    let encodedRange = range
+    if (range.includes('!')) {
+      const [sheetName, cellRange] = range.split('!')
+      // If sheet name contains spaces or special characters, wrap it in single quotes
+      if (sheetName.includes(' ') || sheetName.includes('(') || sheetName.includes(')')) {
+        encodedRange = `'${sheetName}'!${cellRange}`
+      }
+    }
+    
+    // URL encode the range parameter
+    const urlEncodedRange = encodeURIComponent(encodedRange)
+    console.log('Original range:', range)
+    console.log('Encoded range:', encodedRange)
+    console.log('URL encoded range:', urlEncodedRange)
+
     // Use access token to read from Google Sheets
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${urlEncodedRange}`
     const sheetsResponse = await fetch(sheetsUrl, {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -108,6 +125,7 @@ serve(async (req) => {
 
     if (!sheetsResponse.ok) {
       const errorData = await sheetsResponse.json().catch(() => ({}))
+      console.error('Google Sheets API error:', sheetsResponse.status, errorData)
       throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorData.error?.message || sheetsResponse.statusText}`)
     }
 
@@ -132,3 +150,4 @@ serve(async (req) => {
     )
   }
 })
+
