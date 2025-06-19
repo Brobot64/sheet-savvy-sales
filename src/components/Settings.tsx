@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,8 +51,6 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
     setTestResult(null);
     
     const sheetsService = GoogleSheetsService.getInstance();
-    sheetsService.setApiKey(editedConfig.googleSheetsApiKey);
-    
     const result = await sheetsService.testConnection(editedConfig);
     setTestResult(result);
     setIsTestingConnection(false);
@@ -74,29 +71,20 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Google Sheets API</CardTitle>
+              <CardTitle className="text-base">Google Sheets Integration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>API Key</Label>
-                <Input
-                  type="password"
-                  value={editedConfig.googleSheetsApiKey}
-                  onChange={(e) => setEditedConfig(prev => ({
-                    ...prev,
-                    googleSheetsApiKey: e.target.value
-                  }))}
-                  placeholder="Enter Google Sheets API key"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Get your API key from Google Cloud Console
-                </p>
-              </div>
+              <Alert className="border-blue-200 bg-blue-50">
+                <CheckCircle className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Secure authentication enabled via Supabase Edge Functions. Configure your Google Service Account credentials in Supabase secrets.
+                </AlertDescription>
+              </Alert>
               
               <div className="flex gap-2">
                 <Button 
                   onClick={testConnection}
-                  disabled={!editedConfig.googleSheetsApiKey || isTestingConnection}
+                  disabled={isTestingConnection}
                   variant="outline"
                   size="sm"
                   className="flex-1"

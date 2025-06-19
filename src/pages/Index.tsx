@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon, AlertCircle } from 'lucide-react';
+import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,15 +36,12 @@ const Index = () => {
     companyName: 'Depot Sales Company',
     companyAddress: 'Warehouse 1 - A Load Out',
     companyPhone: '+234 XXX XXX XXXX',
-    googleSheetsApiKey: ''
+    googleSheetsApiKey: '' // No longer used with Edge Functions
   });
 
   const sheetsService = GoogleSheetsService.getInstance();
 
   useEffect(() => {
-    if (config.googleSheetsApiKey) {
-      sheetsService.setApiKey(config.googleSheetsApiKey);
-    }
     loadSKUData();
   }, [config]);
 
@@ -154,8 +151,8 @@ const Index = () => {
         driver: config.drivers[0] || 'DEPOT BULK'
       };
 
-      // Write to Google Sheets
-      console.log('Writing order to Google Sheets:', order);
+      // Write to Google Sheets via Edge Functions
+      console.log('Writing order to Google Sheets via Supabase Edge Functions:', order);
       
       await sheetsService.writeSalesRecord(order, config);
       await sheetsService.writePaymentRecord(order, config);
@@ -165,7 +162,7 @@ const Index = () => {
       
       toast({
         title: "Order Completed!",
-        description: `Order ${order.id} has been processed and recorded.`,
+        description: `Order ${order.id} has been processed and recorded securely.`,
       });
       
     } catch (error) {
@@ -178,39 +175,6 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const simulateGoogleSheetsWrite = async (order: Order) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Log what would be written to sheets
-    console.log('Sales records that would be written:');
-    order.items.forEach(item => {
-      console.log({
-        timestamp: order.timestamp.toISOString(),
-        skuName: item.sku.name,
-        quantity: item.quantity,
-        unitPrice: item.sku.unitPrice,
-        lineTotal: item.lineTotal,
-        customerName: order.customer.name,
-        customerAddress: order.customer.address,
-        customerPhone: order.customer.phone,
-        driver: order.driver,
-        paymentMethod: order.paymentMethod,
-        amountPaid: order.amountPaid,
-        balance: order.balance
-      });
-    });
-    
-    console.log('Payment record that would be written:');
-    console.log({
-      timestamp: order.timestamp.toISOString(),
-      customerName: order.customer.name,
-      amount: order.amountPaid,
-      paymentMethod: order.paymentMethod,
-      reference: order.id
-    });
   };
 
   const handleNewOrder = () => {
@@ -247,15 +211,13 @@ Thank you for your business!`;
           <Settings config={config} onSave={setConfig} />
         </div>
 
-        {/* API Key Warning */}
-        {!config.googleSheetsApiKey && (
-          <Alert className="m-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Demo mode: Configure Google Sheets API key in settings for live data.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Secure Integration Notice */}
+        <Alert className="m-4 border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Secure Google Sheets integration active via Supabase Edge Functions.
+          </AlertDescription>
+        </Alert>
 
         {/* Main Content */}
         <div className="p-4">

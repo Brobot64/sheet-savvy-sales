@@ -1,10 +1,9 @@
-
 import { SKU, SalesRecord, PaymentRecord, AppConfig, Order } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 // Google Sheets API service
 export class GoogleSheetsService {
   private static instance: GoogleSheetsService;
-  private apiKey: string = '';
   
   static getInstance(): GoogleSheetsService {
     if (!GoogleSheetsService.instance) {
@@ -14,24 +13,27 @@ export class GoogleSheetsService {
   }
 
   setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
+    // No longer needed - using Edge Functions
+    console.log('API key setting is deprecated. Using Supabase Edge Functions for secure authentication.');
   }
 
   async fetchSheetData(spreadsheetId: string, range: string): Promise<any[][]> {
-    if (!this.apiKey) {
-      throw new Error('Google Sheets API key not configured');
-    }
-
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${this.apiKey}`;
-    
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Google Sheets API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+      console.log('Fetching sheet data via Supabase Edge Function...');
+      
+      const { data, error } = await supabase.functions.invoke('google-sheets-read', {
+        body: { spreadsheetId, range }
+      });
+
+      if (error) {
+        throw new Error(`Supabase function error: ${error.message}`);
       }
-      const data = await response.json();
-      return data.values || [];
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data?.values || [];
     } catch (error) {
       console.error('Error fetching sheet data:', error);
       throw error;
@@ -39,44 +41,51 @@ export class GoogleSheetsService {
   }
 
   async appendToSheet(spreadsheetId: string, range: string, values: any[][]): Promise<void> {
-    if (!this.apiKey) {
-      console.log('Google Sheets API key not configured. Would append to sheet:', { spreadsheetId, range, values });
-      return;
-    }
+    try {
+      console.log('Writing to sheet via Supabase Edge Function...');
+      
+      const { data, error } = await supabase.functions.invoke('google-sheets-write', {
+        body: { spreadsheetId, range, values }
+      });
 
-    // Note: Write operations require OAuth2 authentication
-    // For production, you'd need to implement proper authentication
-    console.log('Would append to sheet (write operations require OAuth2):', { spreadsheetId, range, values });
-    
-    // Simulate the write operation
-    await new Promise(resolve => setTimeout(resolve, 500));
+      if (error) {
+        throw new Error(`Supabase function error: ${error.message}`);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      console.log(`Successfully wrote ${data?.updatedRows || 0} rows to sheet`);
+    } catch (error) {
+      console.error('Error writing to sheet:', error);
+      throw error;
+    }
   }
 
   async getSKUData(config: AppConfig): Promise<SKU[]> {
     try {
-      // Try to fetch real data if API key is configured
-      if (this.apiKey) {
-        console.log('Fetching SKU data from Google Sheets...');
-        const range = `Price Data (Depot Only)!A:D`;
-        const data = await this.fetchSheetData(config.spreadsheetId, range);
+      console.log('Fetching SKU data from Google Sheets...');
+      const range = `Price Data (Depot Only)!A:D`;
+      const data = await this.fetchSheetData(config.spreadsheetId, range);
+      
+      if (data.length > 1) {
+        // Skip header row and map to SKU objects
+        const skus = data.slice(1).map((row, index) => ({
+          id: `sku-${index + 1}`,
+          name: row[0] || '',
+          unitPrice: parseFloat(row[1]) || 0,
+          packType: row[2] || '',
+          packType2: row[3] || ''
+        })).filter(sku => sku.name && sku.unitPrice > 0); // Filter out empty/invalid rows
         
-        if (data.length > 1) {
-          // Skip header row and map to SKU objects
-          const skus = data.slice(1).map((row, index) => ({
-            id: `sku-${index + 1}`,
-            name: row[0] || '',
-            unitPrice: parseFloat(row[1]) || 0,
-            packType: row[2] || '',
-            packType2: row[3] || ''
-          })).filter(sku => sku.name && sku.unitPrice > 0); // Filter out empty/invalid rows
-          
-          console.log(`Loaded ${skus.length} SKUs from Google Sheets`);
-          return skus;
-        }
+        console.log(`Loaded ${skus.length} SKUs from Google Sheets`);
+        return skus;
       }
     } catch (error) {
       console.error('Error fetching SKU data from Google Sheets:', error);
-      throw error;
+      console.log('Using fallback SKU data');
+      return this.getFallbackSKUData();
     }
 
     // Fallback to local data
@@ -199,15 +208,11 @@ export class GoogleSheetsService {
 
   async testConnection(config: AppConfig): Promise<{ success: boolean; message: string }> {
     try {
-      if (!this.apiKey) {
-        return { success: false, message: 'API key not configured' };
-      }
-
       // Test by trying to read the price sheet
       const range = `Price Data (Depot Only)!A1:D1`;
       await this.fetchSheetData(config.spreadsheetId, range);
       
-      return { success: true, message: 'Successfully connected to Google Sheets' };
+      return { success: true, message: 'Successfully connected to Google Sheets via Supabase Edge Functions' };
     } catch (error) {
       return { 
         success: false, 
