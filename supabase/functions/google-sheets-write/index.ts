@@ -12,16 +12,42 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, range, values, gid } = await req.json()
-    console.log('Writing to sheet with params:', { spreadsheetId, range, gid, rowCount: values?.length })
+    const requestBody = await req.json()
+    const { spreadsheetId, range, values, gid } = requestBody
+    
+    console.log('Writing to sheet with params:', { 
+      spreadsheetId: spreadsheetId?.substring(0, 10) + '...', 
+      range, 
+      gid, 
+      rowCount: values?.length,
+      hasValues: !!values
+    })
+
+    // Validate input parameters
+    if (!spreadsheetId || !range || !values || !Array.isArray(values)) {
+      console.error('Invalid input parameters:', { spreadsheetId: !!spreadsheetId, range: !!range, values: !!values })
+      throw new Error('Missing required parameters: spreadsheetId, range, and values are required')
+    }
+
+    if (values.length === 0) {
+      console.error('Empty values array provided')
+      throw new Error('Values array cannot be empty')
+    }
 
     // Get the service account credentials from Supabase secrets
     const serviceAccountKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY')
     if (!serviceAccountKey) {
+      console.error('Google Service Account credentials not found in environment')
       throw new Error('Google Service Account credentials not configured')
     }
 
-    const credentials = JSON.parse(serviceAccountKey)
+    let credentials
+    try {
+      credentials = JSON.parse(serviceAccountKey)
+    } catch (parseError) {
+      console.error('Failed to parse service account key:', parseError)
+      throw new Error('Invalid Google Service Account credentials format')
+    }
     
     // Create JWT for Google API authentication
     const header = {
@@ -96,13 +122,14 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json()
     if (!tokenData.access_token) {
       console.error('Token response:', tokenData)
-      throw new Error('Failed to get access token')
+      throw new Error(`Failed to get access token: ${tokenData.error || 'Unknown token error'}`)
     }
 
     // Use the correct append API endpoint and request format
     const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
     
     console.log('Write URL:', sheetsUrl)
+    console.log('Values to write (first row):', values[0])
     
     const sheetsResponse = await fetch(sheetsUrl, {
       method: 'POST',
@@ -116,17 +143,35 @@ serve(async (req) => {
     })
 
     if (!sheetsResponse.ok) {
-      const errorData = await sheetsResponse.json().catch(() => ({}))
-      console.error('Google Sheets API error:', sheetsResponse.status, errorData)
-      console.error('Request URL was:', sheetsUrl)
-      throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorData.error?.message || sheetsResponse.statusText}`)
+      let errorData
+      try {
+        errorData = await sheetsResponse.json()
+      } catch {
+        errorData = { message: await sheetsResponse.text() }
+      }
+      
+      console.error('Google Sheets API error:', {
+        status: sheetsResponse.status,
+        statusText: sheetsResponse.statusText,
+        error: errorData,
+        url: sheetsUrl
+      })
+      
+      throw new Error(`Google Sheets API error (${sheetsResponse.status}): ${errorData.error?.message || errorData.message || sheetsResponse.statusText}`)
     }
 
     const data = await sheetsResponse.json()
-    console.log('Write successful:', data)
+    console.log('Write successful:', {
+      updatedRows: data.updates?.updatedRows || 0,
+      updatedRange: data.updates?.updatedRange
+    })
     
     return new Response(
-      JSON.stringify({ success: true, updatedRows: data.updates?.updatedRows || 0 }),
+      JSON.stringify({ 
+        success: true, 
+        updatedRows: data.updates?.updatedRows || 0,
+        updatedRange: data.updates?.updatedRange
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -134,9 +179,17 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in google-sheets-write:', error)
+    console.error('Error in google-sheets-write:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check function logs for more information'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

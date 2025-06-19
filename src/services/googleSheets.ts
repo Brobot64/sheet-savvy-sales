@@ -27,10 +27,12 @@ export class GoogleSheetsService {
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(`Supabase function error: ${error.message}`);
       }
 
       if (data?.error) {
+        console.error('Google Sheets API error:', data.error);
         throw new Error(data.error);
       }
 
@@ -43,21 +45,34 @@ export class GoogleSheetsService {
 
   async appendToSheet(spreadsheetId: string, range: string, values: any[][], gid?: string): Promise<void> {
     try {
-      console.log('Writing to sheet via Supabase Edge Function...');
+      console.log('Writing to sheet via Supabase Edge Function...', {
+        spreadsheetId,
+        range,
+        gid,
+        rowCount: values.length,
+        sampleData: values[0]
+      });
       
       const { data, error } = await supabase.functions.invoke('google-sheets-write', {
-        body: { spreadsheetId, range, values, gid }
+        body: { 
+          spreadsheetId, 
+          range, 
+          values: values.map(row => row.map(cell => cell === null || cell === undefined ? '' : String(cell))), 
+          gid 
+        }
       });
 
       if (error) {
-        throw new Error(`Supabase function error: ${error.message}`);
+        console.error('Supabase function error:', error);
+        throw new Error(`Failed to write to sheet: ${error.message}`);
       }
 
       if (data?.error) {
-        throw new Error(data.error);
+        console.error('Google Sheets write error:', data.error);
+        throw new Error(`Google Sheets error: ${data.error}`);
       }
 
-      console.log(`Successfully wrote ${data?.updatedRows || 0} rows to sheet`);
+      console.log(`Successfully wrote ${data?.updatedRows || values.length} rows to sheet`);
     } catch (error) {
       console.error('Error writing to sheet:', error);
       throw error;
@@ -106,30 +121,39 @@ export class GoogleSheetsService {
 
     // Create a sales record for each line item
     order.items.forEach(item => {
-      salesRecords.push([
+      const record = [
         timestamp, // Timestamp
         transactionDate, // Transaction Date
         'Warehouse 1 - A', // Warehouse
         'Load Out', // Load Out/In
-        item.sku.name, // SKU Name
-        item.quantity, // SKU QTY
-        item.sku.unitPrice, // SKU Price
-        item.lineTotal, // Total Amount
-        item.sku.packType, // Pack Type
-        order.driver, // Driver-Seller
+        item.sku.name || '', // SKU Name
+        item.quantity || 0, // SKU QTY
+        item.sku.unitPrice || 0, // SKU Price
+        item.lineTotal || 0, // Total Amount
+        item.sku.packType || '', // Pack Type
+        order.driver || config.drivers[0] || 'DEPOT BULK', // Driver-Seller
         'QUDUS ALLI', // Loader 1
         '', // Loader 2
         'Kundus', // Submitted By
-        order.customer.name, // Customer Name
-        order.customer.address, // Customer Address
-        order.customer.phone, // Customer Phone
-        order.paymentMethod, // Payment Method
-        order.amountPaid, // Amount Paid
-        order.balance // Balance
-      ]);
+        order.customer.name || '', // Customer Name
+        order.customer.address || '', // Customer Address
+        order.customer.phone || '', // Customer Phone
+        order.paymentMethod || '', // Payment Method
+        order.amountPaid || 0, // Amount Paid
+        order.balance || 0 // Balance
+      ];
+      
+      console.log('Sales record for item:', item.sku.name, record);
+      salesRecords.push(record);
     });
 
-    console.log('Writing sales records:', salesRecords);
+    console.log('Writing sales records to sheet:', {
+      recordCount: salesRecords.length,
+      spreadsheetId: config.spreadsheetId,
+      range: 'SalesData!A:S',
+      gid: config.salesSheetGid
+    });
+    
     await this.appendToSheet(
       config.spreadsheetId, 
       'SalesData!A:S', 
@@ -148,15 +172,21 @@ export class GoogleSheetsService {
       deliveryDate, // Delivery Date
       order.paymentMethod === 'Bank Transfer' ? 'STANBIC' : 'POS', // Bank
       'Warehouse 1 - A', // Warehouse
-      order.driver, // Driver
-      order.customer.name, // Customer Name
-      order.amountPaid, // AMOUNT
+      order.driver || config.drivers[0] || 'DEPOT BULK', // Driver
+      order.customer.name || '', // Customer Name
+      order.amountPaid || 0, // AMOUNT
       'Y', // USE NOW
       '', // FORWARDED DATE
       deliveryDate // NEW DATE
     ];
 
-    console.log('Writing payment record:', paymentRecord);
+    console.log('Writing payment record to sheet:', {
+      record: paymentRecord,
+      spreadsheetId: config.spreadsheetId,
+      range: 'PaymentData!A:J',
+      gid: config.paymentsSheetGid
+    });
+    
     await this.appendToSheet(
       config.spreadsheetId, 
       'PaymentData!A:J', 
