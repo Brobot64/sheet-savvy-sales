@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -11,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, range } = await req.json()
+    const { spreadsheetId, range, gid } = await req.json()
+    console.log('Reading from sheet with params:', { spreadsheetId, range, gid })
 
     // Get the service account credentials from Supabase secrets
     const serviceAccountKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY')
@@ -97,12 +99,17 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
-    // Use the range directly since we're now using acceptable sheet names
-    console.log('Using range:', range)
-
-    // Use access token to read from Google Sheets
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`
-    console.log('Full API URL:', sheetsUrl)
+    // Use GID-based CSV export instead of API range calls
+    let sheetsUrl
+    if (gid) {
+      // Use GID-based export (which works)
+      sheetsUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`
+      console.log('Using GID-based URL:', sheetsUrl)
+    } else {
+      // Fallback to API call (but this might fail with range parsing)
+      sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`
+      console.log('Using API URL:', sheetsUrl)
+    }
     
     const sheetsResponse = await fetch(sheetsUrl, {
       headers: {
@@ -111,16 +118,49 @@ serve(async (req) => {
     })
 
     if (!sheetsResponse.ok) {
-      const errorData = await sheetsResponse.json().catch(() => ({}))
-      console.error('Google Sheets API error:', sheetsResponse.status, errorData)
-      console.error('Request URL was:', sheetsUrl)
-      throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorData.error?.message || sheetsResponse.statusText}`)
+      const errorText = await sheetsResponse.text()
+      console.error('Google Sheets error:', sheetsResponse.status, errorText)
+      throw new Error(`Google Sheets error: ${sheetsResponse.status} - ${errorText}`)
     }
 
-    const data = await sheetsResponse.json()
+    let values
+    if (gid) {
+      // Parse CSV data
+      const csvData = await sheetsResponse.text()
+      console.log('CSV data retrieved, length:', csvData.length)
+      
+      // Parse CSV into rows
+      const rows = csvData.split('\n').map(row => {
+        // Simple CSV parsing - handle quoted fields
+        const result = []
+        let current = ''
+        let inQuotes = false
+        
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i]
+          if (char === '"') {
+            inQuotes = !inQuotes
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim())
+            current = ''
+          } else {
+            current += char
+          }
+        }
+        result.push(current.trim())
+        return result
+      })
+      
+      values = rows.filter(row => row.some(cell => cell !== ''))
+      console.log('Parsed rows:', values.length)
+    } else {
+      // Handle API response
+      const data = await sheetsResponse.json()
+      values = data.values || []
+    }
     
     return new Response(
-      JSON.stringify({ values: data.values || [] }),
+      JSON.stringify({ values }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

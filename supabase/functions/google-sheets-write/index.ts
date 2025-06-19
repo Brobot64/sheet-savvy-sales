@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -11,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, range, values } = await req.json()
+    const { spreadsheetId, range, values, gid } = await req.json()
+    console.log('Writing to sheet with params:', { spreadsheetId, range, gid, rowCount: values?.length })
 
     // Get the service account credentials from Supabase secrets
     const serviceAccountKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY')
@@ -97,12 +99,19 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
-    // Use the range directly since we're now using acceptable sheet names
-    console.log('Using range:', range)
-
-    // Use access token to write to Google Sheets
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
-    console.log('Full API URL:', sheetsUrl)
+    // For writes, we still need to use the API (GID export is read-only)
+    // But we can construct the URL more carefully
+    let sheetsUrl
+    if (gid) {
+      // When we have a GID, we can try to get the sheet name first
+      // For now, let's use the range as provided but log for debugging
+      console.log('Using range for write with GID context:', range)
+      sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
+    } else {
+      sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
+    }
+    
+    console.log('Write URL:', sheetsUrl)
     
     const sheetsResponse = await fetch(sheetsUrl, {
       method: 'POST',
@@ -124,6 +133,7 @@ serve(async (req) => {
     }
 
     const data = await sheetsResponse.json()
+    console.log('Write successful:', data)
     
     return new Response(
       JSON.stringify({ success: true, updatedRows: data.updates?.updatedRows || 0 }),
