@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -98,35 +97,11 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
-    // Properly format the range for Google Sheets API
-    let finalRange = range
-    console.log('Original range:', range)
-    
-    // If the range contains a sheet name with special characters, we need to handle it carefully
-    if (range.includes('!')) {
-      const [sheetName, cellRange] = range.split('!')
-      
-      // For sheet names with spaces or special characters, we need to quote them
-      // But we should NOT quote them if they're already properly formatted
-      let formattedSheetName = sheetName
-      
-      // Check if sheet name needs quoting (contains spaces, parentheses, etc.)
-      if (sheetName.includes(' ') || sheetName.includes('(') || sheetName.includes(')') || sheetName.includes('-')) {
-        // Only add quotes if not already quoted
-        if (!sheetName.startsWith("'") || !sheetName.endsWith("'")) {
-          // Escape any existing single quotes by doubling them
-          const escapedName = sheetName.replace(/'/g, "''")
-          formattedSheetName = `'${escapedName}'`
-        }
-      }
-      
-      finalRange = `${formattedSheetName}!${cellRange}`
-    }
-    
-    console.log('Formatted range:', finalRange)
+    // Use the range directly since we're now using acceptable sheet names
+    console.log('Using range:', range)
 
     // Use access token to write to Google Sheets
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(finalRange)}:append`
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
     console.log('Full API URL:', sheetsUrl)
     
     const sheetsResponse = await fetch(sheetsUrl, {
@@ -145,7 +120,6 @@ serve(async (req) => {
       const errorData = await sheetsResponse.json().catch(() => ({}))
       console.error('Google Sheets API error:', sheetsResponse.status, errorData)
       console.error('Request URL was:', sheetsUrl)
-      console.error('Final range used:', finalRange)
       throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorData.error?.message || sheetsResponse.statusText}`)
     }
 

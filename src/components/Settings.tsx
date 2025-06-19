@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -125,6 +126,16 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                   placeholder="Enter spreadsheet ID"
                 />
               </div>
+              
+              <Alert className="border-yellow-200 bg-yellow-50">
+                <AlertDescription className="text-yellow-800">
+                  <strong>Required Sheet Names:</strong><br/>
+                  • PriceData - for product pricing<br/>
+                  • SalesData - for sales records<br/>
+                  • PaymentData - for payment records<br/>
+                  Sheet names should not contain spaces or special characters.
+                </AlertDescription>
+              </Alert>
               
               <div>
                 <Label>Sales Sheet GID</Label>

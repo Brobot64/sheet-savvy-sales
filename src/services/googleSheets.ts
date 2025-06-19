@@ -1,3 +1,4 @@
+
 import { SKU, SalesRecord, PaymentRecord, AppConfig, Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -66,7 +67,7 @@ export class GoogleSheetsService {
   async getSKUData(config: AppConfig): Promise<SKU[]> {
     try {
       console.log('Fetching SKU data from Google Sheets...');
-      const range = `Price Data (Depot Only)!A:D`;
+      const range = `PriceData!A:D`; // Changed from 'Price Data (Depot Only)' to 'PriceData'
       const data = await this.fetchSheetData(config.spreadsheetId, range);
       
       if (data.length > 1) {
@@ -181,7 +182,7 @@ export class GoogleSheetsService {
     });
 
     console.log('Writing sales records:', salesRecords);
-    await this.appendToSheet(config.spreadsheetId, 'Processed Data (Sales Depot Sales Only)!A:S', salesRecords);
+    await this.appendToSheet(config.spreadsheetId, 'SalesData!A:S', salesRecords); // Changed from 'Processed Data (Sales Depot Sales Only)' to 'SalesData'
   }
 
   async writePaymentRecord(order: Order, config: AppConfig): Promise<void> {
@@ -203,13 +204,13 @@ export class GoogleSheetsService {
     ];
 
     console.log('Writing payment record:', paymentRecord);
-    await this.appendToSheet(config.spreadsheetId, 'Processed Customer Bank Transfer (Depot Only)!A:J', [paymentRecord]);
+    await this.appendToSheet(config.spreadsheetId, 'PaymentData!A:J', [paymentRecord]); // Changed from 'Processed Customer Bank Transfer (Depot Only)' to 'PaymentData'
   }
 
   async testConnection(config: AppConfig): Promise<{ success: boolean; message: string }> {
     try {
       // Test by trying to read the price sheet
-      const range = `Price Data (Depot Only)!A1:D1`;
+      const range = `PriceData!A1:D1`; // Changed from 'Price Data (Depot Only)' to 'PriceData'
       await this.fetchSheetData(config.spreadsheetId, range);
       
       return { success: true, message: 'Successfully connected to Google Sheets via Supabase Edge Functions' };
