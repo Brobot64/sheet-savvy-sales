@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AppConfig } from '@/types';
 import { GoogleSheetsService } from '@/services/googleSheets';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SettingsProps {
   config: AppConfig;
@@ -20,6 +20,8 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isTestingGid, setIsTestingGid] = useState(false);
+  const [gidTestResult, setGidTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
 
   const handleSave = () => {
     onSave(editedConfig);
@@ -55,6 +57,39 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
     const result = await sheetsService.testConnection(editedConfig);
     setTestResult(result);
     setIsTestingConnection(false);
+  };
+
+  const testGidConnection = async () => {
+    setIsTestingGid(true);
+    setGidTestResult(null);
+    
+    try {
+      console.log('Testing GID connection...');
+      const { data, error } = await supabase.functions.invoke('google-sheets-test', {
+        body: {}
+      });
+
+      if (error) {
+        throw new Error(`Supabase function error: ${error.message}`);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      setGidTestResult({
+        success: data.success,
+        message: data.message || 'GID test completed',
+        details: data
+      });
+    } catch (error) {
+      setGidTestResult({
+        success: false,
+        message: `GID test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsTestingGid(false);
+    }
   };
 
   return (
@@ -93,6 +128,17 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                   <TestTube className="h-4 w-4 mr-1" />
                   {isTestingConnection ? 'Testing...' : 'Test Connection'}
                 </Button>
+                
+                <Button 
+                  onClick={testGidConnection}
+                  disabled={isTestingGid}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <TestTube className="h-4 w-4 mr-1" />
+                  {isTestingGid ? 'Testing...' : 'Test GID'}
+                </Button>
               </div>
               
               {testResult && (
@@ -104,6 +150,24 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                   )}
                   <AlertDescription className={testResult.success ? 'text-green-800' : 'text-red-800'}>
                     {testResult.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {gidTestResult && (
+                <Alert className={gidTestResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                  {gidTestResult.success ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  )}
+                  <AlertDescription className={gidTestResult.success ? 'text-green-800' : 'text-red-800'}>
+                    <div>{gidTestResult.message}</div>
+                    {gidTestResult.details && gidTestResult.success && (
+                      <div className="text-xs mt-1">
+                        Rows found: {gidTestResult.details.rowCount}
+                      </div>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
