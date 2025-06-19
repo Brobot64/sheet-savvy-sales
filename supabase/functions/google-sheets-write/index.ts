@@ -99,17 +99,8 @@ serve(async (req) => {
       throw new Error('Failed to get access token')
     }
 
-    // For writes, we still need to use the API (GID export is read-only)
-    // But we can construct the URL more carefully
-    let sheetsUrl
-    if (gid) {
-      // When we have a GID, we can try to get the sheet name first
-      // For now, let's use the range as provided but log for debugging
-      console.log('Using range for write with GID context:', range)
-      sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
-    } else {
-      sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append`
-    }
+    // Use the correct append API endpoint and request format
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
     
     console.log('Write URL:', sheetsUrl)
     
@@ -120,7 +111,6 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        valueInputOption: 'USER_ENTERED',
         values: values
       })
     })
