@@ -1,17 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon } from 'lucide-react';
+import { Receipt as ReceiptIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import SKUCatalog from '@/components/SKUCatalog';
-import Cart from '@/components/Cart';
-import CustomerForm from '@/components/CustomerForm';
-import PaymentForm from '@/components/PaymentForm';
+import UnifiedOrderForm from '@/components/UnifiedOrderForm';
 import Receipt from '@/components/Receipt';
 import Settings from '@/components/Settings';
-import DriverSelector from '@/components/DriverSelector';
 import OrderSummary from '@/components/OrderSummary';
 
 import { SKU, AppConfig } from '@/types';
@@ -21,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('catalog');
+  const [activeTab, setActiveTab] = useState('order');
   const [skus, setSKUs] = useState<SKU[]>([]);
   const [isLoadingSKUs, setIsLoadingSKUs] = useState(false);
   
@@ -183,70 +177,35 @@ const Index = () => {
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4 mb-4">
-                <TabsTrigger value="catalog" className="flex flex-col gap-1">
-                  <div className="bg-white text-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</div>
-                  <ShoppingCart className="h-4 w-4" />
-                </TabsTrigger>
-                <TabsTrigger value="customer" className="flex flex-col gap-1">
-                  <div className="bg-white text-green-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</div>
-                  <User className="h-4 w-4" />
-                </TabsTrigger>
-                <TabsTrigger value="payment" className="flex flex-col gap-1">
-                  <div className="bg-white text-orange-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</div>
-                  <CreditCard className="h-4 w-4" />
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="order" className="flex flex-col gap-1">
+                  <div className="bg-white text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
+                  <span className="text-xs">Order</span>
                 </TabsTrigger>
                 <TabsTrigger value="summary" className="flex flex-col gap-1">
-                  <div className="bg-white text-purple-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</div>
-                  <ReceiptIcon className="h-4 w-4" />
+                  <div className="bg-white text-purple-500 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+                  <span className="text-xs">Summary</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="catalog" className="space-y-4">
-                <DriverSelector 
+              <TabsContent value="order" className="space-y-4">
+                <UnifiedOrderForm
                   drivers={config.drivers}
                   selectedDriver={selectedDriver}
                   onDriverChange={setSelectedDriver}
                   selectedDate={transactionDate}
                   onDateChange={setTransactionDate}
-                />
-                
-                <SKUCatalog 
-                  skus={skus} 
+                  skus={skus}
                   onAddToCart={handleAddToCart}
-                  isLoading={isLoadingSKUs}
-                />
-                
-                {cartItems.length > 0 && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold">
-                          Cart: {cartItems.length} items
-                        </span>
-                        <span className="font-bold text-green-600">
-                          ₦{getOrderTotal().toLocaleString()}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="customer" className="space-y-4">
-                <Cart 
-                  items={cartItems}
+                  isLoadingSKUs={isLoadingSKUs}
+                  cartItems={cartItems}
                   onUpdateQuantity={handleUpdateCartQuantity}
-                  onRemoveItem={handleRemoveFromCart}
-                />
-                <CustomerForm customer={customer} onChange={setCustomer} />
-              </TabsContent>
-
-              <TabsContent value="payment" className="space-y-4">
-                <PaymentForm
+                  onRemoveFromCart={handleRemoveFromCart}
+                  getOrderTotal={getOrderTotal}
+                  customer={customer}
+                  onCustomerChange={setCustomer}
                   paymentMethod={paymentMethod}
                   amountPaid={amountPaid}
-                  orderTotal={getOrderTotal()}
                   onPaymentMethodChange={setPaymentMethod}
                   onAmountPaidChange={setAmountPaid}
                 />
