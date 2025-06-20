@@ -29,10 +29,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     }).format(amount);
   };
 
-  // For UI display: show actual amount paid if provided, otherwise show order total
-  // For balance calculation: use amount paid if provided, otherwise use order total
-  const effectiveAmountPaid = amountPaid > 0 ? amountPaid : orderTotal;
-  const balance = Math.max(0, orderTotal - effectiveAmountPaid);
+  // For balance calculation: use actual amount paid, including zero
+  const balance = Math.max(0, orderTotal - amountPaid);
 
   return (
     <Card>
@@ -54,19 +52,19 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         </div>
         
         <div>
-          <Label htmlFor="amountPaid">Amount Paid (Optional)</Label>
+          <Label htmlFor="amountPaid">Amount Paid</Label>
           <Input
             id="amountPaid"
             type="number"
             step="0.01"
             min="0"
             max={orderTotal}
-            value={amountPaid || ''}
+            value={amountPaid}
             onChange={(e) => onAmountPaidChange(parseFloat(e.target.value) || 0)}
-            placeholder="Leave empty to use order total"
+            placeholder="Enter amount paid"
           />
           <p className="text-xs text-gray-500 mt-1">
-            If left empty, the full order amount will be used
+            Enter 0 for credit sale or partial payment
           </p>
         </div>
         
@@ -77,9 +75,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </div>
           <div className="flex justify-between">
             <span>Amount Paid:</span>
-            <span className="font-semibold">
-              {amountPaid > 0 ? formatCurrency(amountPaid) : formatCurrency(orderTotal)}
-            </span>
+            <span className="font-semibold">{formatCurrency(amountPaid)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
             <span className="font-bold">Balance Due:</span>

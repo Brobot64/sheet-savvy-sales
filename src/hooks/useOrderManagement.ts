@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { CartItem, Customer, Order, AppConfig } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -81,9 +80,9 @@ export const useOrderManagement = (config: AppConfig) => {
     
     try {
       const orderTotal = getOrderTotal();
-      // For backend posting: Use order total if amount paid is not provided or is 0
-      const finalAmountPaid = amountPaid > 0 ? amountPaid : orderTotal;
-      const balance = Math.max(0, orderTotal - finalAmountPaid);
+      // For backend posting: Use order total if amount paid is 0, otherwise use the actual amount paid
+      const backendAmountPaid = amountPaid === 0 ? orderTotal : amountPaid;
+      const balance = Math.max(0, orderTotal - amountPaid); // UI balance uses actual amount paid
       
       const order: Order = {
         id: `ORD-${Date.now()}`,
@@ -92,25 +91,36 @@ export const useOrderManagement = (config: AppConfig) => {
         subtotal: orderTotal,
         total: orderTotal,
         paymentMethod: paymentMethod as 'Bank Transfer' | 'POS',
-        amountPaid: finalAmountPaid, // This will always be the correct amount for backend
+        amountPaid: backendAmountPaid, // This goes to backend - order total when 0 is entered
         balance,
         timestamp: transactionDate,
         driver: selectedDriver
       };
 
-      console.log('Writing order to Google Sheets via Supabase Edge Functions:', order);
+      console.log('Writing order to Google Sheets via Supabase Edge Functions:', {
+        ...order,
+        originalAmountPaid: amountPaid,
+        backendAmountPaid: backendAmountPaid
+      });
       
       await sheetsService.writeSalesRecord(order, config);
       await sheetsService.writePaymentRecord(order, config);
       
-      setCurrentOrder(order);
+      // For the receipt and UI, keep the actual amount paid (including 0)
+      const displayOrder = {
+        ...order,
+        amountPaid: amountPaid, // Show actual amount paid in receipt
+        balance: Math.max(0, orderTotal - amountPaid)
+      };
+      
+      setCurrentOrder(displayOrder);
       
       toast({
         title: "Order Completed!",
         description: `Order ${order.id} has been processed and recorded securely.`,
       });
       
-      return order;
+      return displayOrder;
       
     } catch (error) {
       console.error('Error completing order:', error);
