@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -277,6 +278,49 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                     companyPhone: e.target.value
                   }))}
                   placeholder="Enter company phone"
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Operations Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Default Loader 1</Label>
+                <Input
+                  value={editedConfig.loader1}
+                  onChange={(e) => setEditedConfig(prev => ({
+                    ...prev,
+                    loader1: e.target.value
+                  }))}
+                  placeholder="Enter default loader 1 name"
+                />
+              </div>
+              
+              <div>
+                <Label>Default Loader 2</Label>
+                <Input
+                  value={editedConfig.loader2}
+                  onChange={(e) => setEditedConfig(prev => ({
+                    ...prev,
+                    loader2: e.target.value
+                  }))}
+                  placeholder="Enter default loader 2 name"
+                />
+              </div>
+              
+              <div>
+                <Label>Default Submitted By</Label>
+                <Input
+                  value={editedConfig.submittedBy}
+                  onChange={(e) => setEditedConfig(prev => ({
+                    ...prev,
+                    submittedBy: e.target.value
+                  }))}
+                  placeholder="Enter default submitted by name"
                 />
               </div>
             </CardContent>

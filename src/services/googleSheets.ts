@@ -1,4 +1,3 @@
-
 import { SKU, SalesRecord, PaymentRecord, AppConfig, Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -132,9 +131,9 @@ export class GoogleSheetsService {
         item.lineTotal || 0, // Total Amount
         item.sku.packType || '', // Pack Type
         order.driver || config.drivers[0] || 'DEPOT BULK', // Driver-Seller
-        'QUDUS ALLI', // Loader 1
-        '', // Loader 2
-        'Kundus', // Submitted By
+        config.loader1 || 'Auto', // Loader 1
+        config.loader2 || 'Auto', // Loader 2
+        config.submittedBy || 'Auto', // Submitted By
         order.customer.name || '', // Customer Name
         order.customer.address || '', // Customer Address
         order.customer.phone || '', // Customer Phone
@@ -177,19 +176,20 @@ export class GoogleSheetsService {
       order.amountPaid || 0, // AMOUNT
       'Y', // USE NOW
       '', // FORWARDED DATE
-      deliveryDate // NEW DATE
+      deliveryDate, // NEW DATE
+      config.submittedBy || 'Auto' // Submitted By
     ];
 
     console.log('Writing payment record to sheet:', {
       record: paymentRecord,
       spreadsheetId: config.spreadsheetId,
-      range: 'PaymentData!A:J',
+      range: 'PaymentData!A:K',
       gid: config.paymentsSheetGid
     });
     
     await this.appendToSheet(
       config.spreadsheetId, 
-      'PaymentData!A:J', 
+      'PaymentData!A:K', 
       [paymentRecord], 
       config.paymentsSheetGid
     );

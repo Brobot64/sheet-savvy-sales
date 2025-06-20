@@ -79,4 +79,7 @@ export interface AppConfig {
   companyAddress: string;
   companyPhone: string;
   googleSheetsApiKey: string;
+  loader1: string;
+  loader2: string;
+  submittedBy: string;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,7 +27,10 @@ const Index = () => {
     companyName: 'Depot Sales Company',
     companyAddress: 'Warehouse 1 - A Load Out',
     companyPhone: '+234 XXX XXX XXXX',
-    googleSheetsApiKey: ''
+    googleSheetsApiKey: '',
+    loader1: 'Auto',
+    loader2: 'Auto',
+    submittedBy: 'Auto'
   });
 
   const {
