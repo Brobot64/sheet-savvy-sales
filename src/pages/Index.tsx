@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
 
 import SKUCatalog from '@/components/SKUCatalog';
 import Cart from '@/components/Cart';
@@ -12,20 +10,19 @@ import CustomerForm from '@/components/CustomerForm';
 import PaymentForm from '@/components/PaymentForm';
 import Receipt from '@/components/Receipt';
 import Settings from '@/components/Settings';
+import DriverSelector from '@/components/DriverSelector';
+import OrderSummary from '@/components/OrderSummary';
 
-import { SKU, CartItem, Customer, Order, AppConfig } from '@/types';
+import { SKU, AppConfig } from '@/types';
 import { GoogleSheetsService } from '@/services/googleSheets';
+import { useOrderManagement } from '@/hooks/useOrderManagement';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('catalog');
   const [skus, setSKUs] = useState<SKU[]>([]);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [customer, setCustomer] = useState<Customer>({ name: '', address: '', phone: '' });
-  const [paymentMethod, setPaymentMethod] = useState<'Bank Transfer' | 'POS' | ''>('');
-  const [amountPaid, setAmountPaid] = useState<number>(0);
-  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSKUs, setIsLoadingSKUs] = useState(false);
   
   const [config, setConfig] = useState<AppConfig>({
     spreadsheetId: '1Ljddx01jdNdy7KPhO_8BCUMRmQ-iTznyA03DkJYOhMU',
@@ -36,8 +33,29 @@ const Index = () => {
     companyName: 'Depot Sales Company',
     companyAddress: 'Warehouse 1 - A Load Out',
     companyPhone: '+234 XXX XXX XXXX',
-    googleSheetsApiKey: '' // No longer used with Edge Functions
+    googleSheetsApiKey: ''
   });
+
+  const {
+    cartItems,
+    customer,
+    paymentMethod,
+    amountPaid,
+    currentOrder,
+    selectedDriver,
+    isLoading,
+    setCustomer,
+    setPaymentMethod,
+    setAmountPaid,
+    setSelectedDriver,
+    handleAddToCart,
+    handleUpdateCartQuantity,
+    handleRemoveFromCart,
+    getOrderTotal,
+    canProceedToCheckout,
+    handleCompleteOrder,
+    handleNewOrder
+  } = useOrderManagement(config);
 
   const sheetsService = GoogleSheetsService.getInstance();
 
@@ -46,7 +64,7 @@ const Index = () => {
   }, [config]);
 
   const loadSKUData = async () => {
-    setIsLoading(true);
+    setIsLoadingSKUs(true);
     try {
       const skuData = await sheetsService.getSKUData(config);
       setSKUs(skuData);
@@ -63,127 +81,22 @@ const Index = () => {
         variant: "destructive",
       });
       
-      // Use the fallback SKU data
       const fallbackSKUs = await sheetsService.getSKUData(config);
       setSKUs(fallbackSKUs);
     } finally {
-      setIsLoading(false);
+      setIsLoadingSKUs(false);
     }
   };
 
-  const handleAddToCart = (item: CartItem) => {
-    const existingIndex = cartItems.findIndex(cartItem => cartItem.sku.id === item.sku.id);
-    
-    if (existingIndex >= 0) {
-      const updatedItems = [...cartItems];
-      updatedItems[existingIndex].quantity += item.quantity;
-      updatedItems[existingIndex].lineTotal = updatedItems[existingIndex].quantity * updatedItems[existingIndex].sku.unitPrice;
-      setCartItems(updatedItems);
-    } else {
-      setCartItems(prev => [...prev, item]);
-    }
-    
-    toast({
-      title: "Added to Cart",
-      description: `${item.quantity}x ${item.sku.name} added to cart.`,
-    });
-  };
-
-  const handleUpdateCartQuantity = (index: number, quantity: number) => {
-    if (quantity <= 0) {
-      handleRemoveFromCart(index);
-      return;
-    }
-    
-    const updatedItems = [...cartItems];
-    updatedItems[index].quantity = quantity;
-    updatedItems[index].lineTotal = quantity * updatedItems[index].sku.unitPrice;
-    setCartItems(updatedItems);
-  };
-
-  const handleRemoveFromCart = (index: number) => {
-    setCartItems(prev => prev.filter((_, i) => i !== index));
-    toast({
-      title: "Item Removed",
-      description: "Item has been removed from cart.",
-    });
-  };
-
-  const getOrderTotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  };
-
-  const canProceedToCheckout = () => {
-    return cartItems.length > 0 && 
-           customer.name.trim() !== '' && 
-           customer.address.trim() !== '' && 
-           customer.phone.trim() !== '' &&
-           paymentMethod !== '' &&
-           amountPaid >= 0;
-  };
-
-  const handleCompleteOrder = async () => {
-    if (!canProceedToCheckout()) {
-      toast({
-        title: "Incomplete Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
+  const handleCompleteOrderWithNavigation = async () => {
     try {
-      const orderTotal = getOrderTotal();
-      const balance = Math.max(0, orderTotal - amountPaid);
-      
-      const order: Order = {
-        id: `ORD-${Date.now()}`,
-        customer,
-        items: cartItems,
-        subtotal: orderTotal,
-        total: orderTotal,
-        paymentMethod: paymentMethod as 'Bank Transfer' | 'POS',
-        amountPaid,
-        balance,
-        timestamp: new Date(),
-        driver: config.drivers[0] || 'DEPOT BULK'
-      };
-
-      // Write to Google Sheets via Edge Functions
-      console.log('Writing order to Google Sheets via Supabase Edge Functions:', order);
-      
-      await sheetsService.writeSalesRecord(order, config);
-      await sheetsService.writePaymentRecord(order, config);
-      
-      setCurrentOrder(order);
-      setActiveTab('receipt');
-      
-      toast({
-        title: "Order Completed!",
-        description: `Order ${order.id} has been processed and recorded securely.`,
-      });
-      
+      const order = await handleCompleteOrder();
+      if (order) {
+        setActiveTab('receipt');
+      }
     } catch (error) {
-      console.error('Error completing order:', error);
-      toast({
-        title: "Order Failed",
-        description: "There was an error processing your order. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      // Error handling is done in the hook
     }
-  };
-
-  const handleNewOrder = () => {
-    setCartItems([]);
-    setCustomer({ name: '', address: '', phone: '' });
-    setPaymentMethod('');
-    setAmountPaid(0);
-    setCurrentOrder(null);
-    setActiveTab('catalog');
   };
 
   const handleShareWhatsApp = () => {
@@ -224,17 +137,9 @@ Thank you for your business!`;
       <div className="max-w-md mx-auto bg-white min-h-screen">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold">Sales App</h1>
+          <h1 className="text-xl font-bold">GrandPro Sales App</h1>
           <Settings config={config} onSave={setConfig} />
         </div>
-
-        {/* Secure Integration Notice */}
-        <Alert className="m-4 border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Secure Google Sheets integration active via Supabase Edge Functions.
-          </AlertDescription>
-        </Alert>
 
         {/* Main Content */}
         <div className="p-4">
@@ -267,10 +172,16 @@ Thank you for your business!`;
               </TabsList>
 
               <TabsContent value="catalog" className="space-y-4">
+                <DriverSelector 
+                  drivers={config.drivers}
+                  selectedDriver={selectedDriver}
+                  onDriverChange={setSelectedDriver}
+                />
+                
                 <SKUCatalog 
                   skus={skus} 
                   onAddToCart={handleAddToCart}
-                  isLoading={isLoading}
+                  isLoading={isLoadingSKUs}
                 />
                 
                 {cartItems.length > 0 && (
@@ -309,39 +220,19 @@ Thank you for your business!`;
               </TabsContent>
 
               <TabsContent value="summary" className="space-y-4">
-                <Cart 
-                  items={cartItems}
+                <OrderSummary
+                  cartItems={cartItems}
+                  customer={customer}
+                  paymentMethod={paymentMethod}
+                  amountPaid={amountPaid}
+                  selectedDriver={selectedDriver}
+                  orderTotal={getOrderTotal()}
+                  canProceedToCheckout={canProceedToCheckout()}
+                  isLoading={isLoading}
                   onUpdateQuantity={handleUpdateCartQuantity}
                   onRemoveItem={handleRemoveFromCart}
+                  onCompleteOrder={handleCompleteOrderWithNavigation}
                 />
-                
-                <Card>
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="font-semibold">Customer:</h3>
-                    <p className="text-sm">{customer.name || 'Not provided'}</p>
-                    <p className="text-sm">{customer.address || 'Not provided'}</p>
-                    <p className="text-sm">{customer.phone || 'Not provided'}</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="font-semibold">Payment:</h3>
-                    <p className="text-sm">Method: {paymentMethod || 'Not selected'}</p>
-                    <p className="text-sm">Amount: ₦{amountPaid.toLocaleString()}</p>
-                    <p className="text-sm">
-                      Balance: ₦{Math.max(0, getOrderTotal() - amountPaid).toLocaleString()}
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Button 
-                  onClick={handleCompleteOrder}
-                  disabled={!canProceedToCheckout() || isLoading}
-                  className="w-full"
-                >
-                  {isLoading ? 'Processing...' : 'Complete Order'}
-                </Button>
               </TabsContent>
             </Tabs>
           )}

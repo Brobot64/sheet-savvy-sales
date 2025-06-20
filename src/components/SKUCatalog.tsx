@@ -28,8 +28,7 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
 
   useEffect(() => {
     const filtered = skus.filter(sku =>
-      sku.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sku.packType.toLowerCase().includes(searchTerm.toLowerCase())
+      sku.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredSkus(filtered);
   }, [skus, searchTerm]);
@@ -66,7 +65,7 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
@@ -78,20 +77,16 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-2 max-h-[70vh] overflow-y-auto">
+      <div className="grid grid-cols-1 gap-1.5 max-h-[75vh] overflow-y-auto">
         {filteredSkus.map((sku) => (
           <Card key={sku.id} className="border border-gray-200">
-            <CardContent className="p-3">
+            <CardContent className="p-2.5">
               <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">{sku.name}</h3>
-                  <p className="text-gray-600 text-xs">{sku.packType}</p>
-                  {sku.packType2 && (
-                    <p className="text-gray-500 text-xs">{sku.packType2}</p>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm truncate">{sku.name}</h3>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-green-600 text-sm">
+                <div className="text-right ml-2">
+                  <span className="font-bold text-green-600 text-sm whitespace-nowrap">
                     {formatCurrency(sku.unitPrice)}
                   </span>
                 </div>
@@ -104,12 +99,12 @@ const SKUCatalog: React.FC<SKUCatalogProps> = ({ skus, onAddToCart, isLoading })
                   value={quantities[sku.id] || ''}
                   onChange={(e) => handleQuantityChange(sku.id, parseInt(e.target.value) || 0)}
                   placeholder="Qty"
-                  className="w-16 text-center h-8 text-sm"
+                  className="w-14 text-center h-7 text-xs"
                 />
                 <Button
                   onClick={() => handleAddToCart(sku)}
                   disabled={!quantities[sku.id] || quantities[sku.id] <= 0}
-                  className="flex-1 h-8 text-xs"
+                  className="flex-1 h-7 text-xs px-2"
                   size="sm"
                 >
                   <Plus className="h-3 w-3 mr-1" />

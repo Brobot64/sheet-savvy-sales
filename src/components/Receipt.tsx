@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,26 +51,23 @@ const Receipt: React.FC<ReceiptProps> = ({ order, config, onShareWhatsApp }) => 
           <Table className="text-xs">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-8 p-2">S/No</TableHead>
-                <TableHead className="p-2">SKU</TableHead>
-                <TableHead className="w-12 p-2 text-center">Qty</TableHead>
-                <TableHead className="w-16 p-2 text-right">Unit Price</TableHead>
-                <TableHead className="w-16 p-2 text-right">Subtotal</TableHead>
+                <TableHead className="w-8 p-1">S/No</TableHead>
+                <TableHead className="p-1">SKU</TableHead>
+                <TableHead className="w-8 p-1 text-center">Qty</TableHead>
+                <TableHead className="w-16 p-1 text-right">Unit Price</TableHead>
+                <TableHead className="w-16 p-1 text-right">Subtotal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {order.items.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell className="p-2 font-medium">{index + 1}</TableCell>
-                  <TableCell className="p-2">
-                    <div className="font-medium">{item.sku.name}</div>
-                    <div className="text-gray-600 text-xs">
-                      {item.sku.packType} • {item.sku.packType2}
-                    </div>
+                  <TableCell className="p-1 font-medium">{index + 1}</TableCell>
+                  <TableCell className="p-1">
+                    <div className="font-medium text-xs">{item.sku.name}</div>
                   </TableCell>
-                  <TableCell className="p-2 text-center">{item.quantity}</TableCell>
-                  <TableCell className="p-2 text-right">{formatCurrency(item.sku.unitPrice)}</TableCell>
-                  <TableCell className="p-2 text-right font-semibold">{formatCurrency(item.lineTotal)}</TableCell>
+                  <TableCell className="p-1 text-center">{item.quantity}</TableCell>
+                  <TableCell className="p-1 text-right text-xs">{formatCurrency(item.sku.unitPrice)}</TableCell>
+                  <TableCell className="p-1 text-right font-semibold text-xs">{formatCurrency(item.lineTotal)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
