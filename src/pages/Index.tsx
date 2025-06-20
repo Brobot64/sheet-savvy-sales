@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, CreditCard, Receipt as ReceiptIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,11 +44,13 @@ const Index = () => {
     amountPaid,
     currentOrder,
     selectedDriver,
+    transactionDate,
     isLoading,
     setCustomer,
     setPaymentMethod,
     setAmountPaid,
     setSelectedDriver,
+    setTransactionDate,
     handleAddToCart,
     handleUpdateCartQuantity,
     handleRemoveFromCart,
@@ -110,22 +113,46 @@ const Index = () => {
         maximumFractionDigits: 0,
       }).format(amount);
     };
+
+    // Create a more structured table format for WhatsApp
+    const separator = '─'.repeat(35);
+    let message = `📋 *SALES RECEIPT*\n`;
+    message += `Order: ${currentOrder.id}\n`;
+    message += `Date: ${currentOrder.timestamp.toLocaleDateString('en-GB')}\n`;
+    message += `Driver: ${currentOrder.driver}\n\n`;
     
-    let itemsList = '';
+    message += `👤 *Customer:*\n`;
+    message += `${currentOrder.customer.name}\n`;
+    if (currentOrder.customer.address) {
+      message += `${currentOrder.customer.address}\n`;
+    }
+    message += `${currentOrder.customer.phone}\n\n`;
+    
+    message += `🛒 *Items:*\n`;
+    message += `${separator}\n`;
+    message += `S/N | SKU | Qty | Price | Total\n`;
+    message += `${separator}\n`;
+    
     currentOrder.items.forEach((item, index) => {
-      itemsList += `${index + 1}. ${item.sku.name} - Qty: ${item.quantity} x ${formatCurrency(item.sku.unitPrice)} = ${formatCurrency(item.lineTotal)}\n`;
+      const line = `${String(index + 1).padStart(2)} | ${item.sku.name.substring(0, 12)} | ${String(item.quantity).padStart(2)} | ${formatCurrency(item.sku.unitPrice)} | ${formatCurrency(item.lineTotal)}`;
+      message += `${line}\n`;
     });
     
-    const message = `Receipt for Order ${currentOrder.id}
-Customer: ${currentOrder.customer.name}
-
-ITEMS:
-${itemsList}
-Total: ${formatCurrency(currentOrder.total)}
-Paid: ${formatCurrency(currentOrder.amountPaid)}
-${currentOrder.balance > 0 ? `Balance: ${formatCurrency(currentOrder.balance)}` : 'Paid in Full'}
-
-Thank you for your business!`;
+    message += `${separator}\n`;
+    message += `💰 *TOTAL: ${formatCurrency(currentOrder.total)}*\n`;
+    message += `💳 Payment: ${currentOrder.paymentMethod}\n`;
+    message += `💵 Paid: ${formatCurrency(currentOrder.amountPaid)}\n`;
+    
+    if (currentOrder.balance > 0) {
+      message += `🔴 Balance: ${formatCurrency(currentOrder.balance)}\n`;
+    } else {
+      message += `✅ *PAID IN FULL*\n`;
+    }
+    
+    message += `\n🏢 ${config.companyName}\n`;
+    message += `📍 ${config.companyAddress}\n`;
+    message += `📞 ${config.companyPhone}\n\n`;
+    message += `Thank you for your business! 🙏`;
     
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
@@ -157,16 +184,20 @@ Thank you for your business!`;
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-4 mb-4">
-                <TabsTrigger value="catalog" className="text-xs">
+                <TabsTrigger value="catalog" className="flex flex-col gap-1">
+                  <div className="bg-white text-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</div>
                   <ShoppingCart className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="customer" className="text-xs">
+                <TabsTrigger value="customer" className="flex flex-col gap-1">
+                  <div className="bg-white text-green-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</div>
                   <User className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="payment" className="text-xs">
+                <TabsTrigger value="payment" className="flex flex-col gap-1">
+                  <div className="bg-white text-orange-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</div>
                   <CreditCard className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="summary" className="text-xs">
+                <TabsTrigger value="summary" className="flex flex-col gap-1">
+                  <div className="bg-white text-purple-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</div>
                   <ReceiptIcon className="h-4 w-4" />
                 </TabsTrigger>
               </TabsList>
@@ -176,6 +207,8 @@ Thank you for your business!`;
                   drivers={config.drivers}
                   selectedDriver={selectedDriver}
                   onDriverChange={setSelectedDriver}
+                  selectedDate={transactionDate}
+                  onDateChange={setTransactionDate}
                 />
                 
                 <SKUCatalog 

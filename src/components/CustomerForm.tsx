@@ -25,7 +25,10 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onChange }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="customerName">Customer Name *</Label>
+          <Label htmlFor="customerName" className="flex items-center gap-1">
+            Customer Name 
+            <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="customerName"
             type="text"
@@ -37,19 +40,24 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onChange }) => {
         </div>
         
         <div>
-          <Label htmlFor="customerAddress">Address *</Label>
+          <Label htmlFor="customerAddress" className="flex items-center gap-1">
+            Address
+            <span className="text-gray-400 text-sm">(Optional)</span>
+          </Label>
           <Input
             id="customerAddress"
             type="text"
             value={customer.address}
             onChange={(e) => handleChange('address', e.target.value)}
-            placeholder="Enter customer address"
-            required
+            placeholder="Enter customer address (optional)"
           />
         </div>
         
         <div>
-          <Label htmlFor="customerPhone">Phone Number *</Label>
+          <Label htmlFor="customerPhone" className="flex items-center gap-1">
+            Phone Number 
+            <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="customerPhone"
             type="tel"

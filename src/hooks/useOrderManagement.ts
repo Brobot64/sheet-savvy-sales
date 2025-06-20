@@ -12,6 +12,7 @@ export const useOrderManagement = (config: AppConfig) => {
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>(config.drivers[0] || '');
+  const [transactionDate, setTransactionDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
   const sheetsService = GoogleSheetsService.getInstance();
@@ -61,7 +62,6 @@ export const useOrderManagement = (config: AppConfig) => {
   const canProceedToCheckout = () => {
     return cartItems.length > 0 && 
            customer.name.trim() !== '' && 
-           customer.address.trim() !== '' && 
            customer.phone.trim() !== '' &&
            paymentMethod !== '' &&
            amountPaid >= 0 &&
@@ -93,7 +93,7 @@ export const useOrderManagement = (config: AppConfig) => {
         paymentMethod: paymentMethod as 'Bank Transfer' | 'POS',
         amountPaid,
         balance,
-        timestamp: new Date(),
+        timestamp: transactionDate,
         driver: selectedDriver
       };
 
@@ -131,6 +131,7 @@ export const useOrderManagement = (config: AppConfig) => {
     setAmountPaid(0);
     setCurrentOrder(null);
     setSelectedDriver(config.drivers[0] || '');
+    setTransactionDate(new Date());
   };
 
   return {
@@ -140,11 +141,13 @@ export const useOrderManagement = (config: AppConfig) => {
     amountPaid,
     currentOrder,
     selectedDriver,
+    transactionDate,
     isLoading,
     setCustomer,
     setPaymentMethod,
     setAmountPaid,
     setSelectedDriver,
+    setTransactionDate,
     handleAddToCart,
     handleUpdateCartQuantity,
     handleRemoveFromCart,
