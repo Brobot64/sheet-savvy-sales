@@ -51,7 +51,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         </div>
         
         <div>
-          <Label htmlFor="amountPaid">Amount Paid *</Label>
+          <Label htmlFor="amountPaid">Amount Paid (Optional)</Label>
           <Input
             id="amountPaid"
             type="number"
@@ -60,8 +60,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             max={orderTotal}
             value={amountPaid || ''}
             onChange={(e) => onAmountPaidChange(parseFloat(e.target.value) || 0)}
-            placeholder="0.00"
+            placeholder="Leave empty to use order total"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            If left empty, the full order amount will be used
+          </p>
         </div>
         
         <div className="bg-gray-50 p-3 rounded-lg space-y-2">
@@ -71,12 +74,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </div>
           <div className="flex justify-between">
             <span>Amount Paid:</span>
-            <span className="font-semibold">{formatCurrency(amountPaid)}</span>
+            <span className="font-semibold">{formatCurrency(amountPaid || orderTotal)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
             <span className="font-bold">Balance Due:</span>
-            <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatCurrency(balance)}
+            <span className={`font-bold ${(amountPaid ? balance : 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {formatCurrency(amountPaid ? balance : 0)}
             </span>
           </div>
         </div>

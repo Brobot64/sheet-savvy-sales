@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from 'react';
-import { Receipt as ReceiptIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -108,7 +108,6 @@ const Index = () => {
       }).format(amount);
     };
 
-    // Create a more structured table format for WhatsApp
     const separator = '─'.repeat(35);
     let message = `📋 *SALES RECEIPT*\n`;
     message += `Order: ${currentOrder.id}\n`;
@@ -156,13 +155,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen">
-        {/* Header */}
         <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">GrandPro Sales App</h1>
           <Settings config={config} onSave={setConfig} />
         </div>
 
-        {/* Main Content */}
         <div className="p-4">
           {currentOrder ? (
             <div className="space-y-4">
@@ -199,15 +196,7 @@ const Index = () => {
                   onAddToCart={handleAddToCart}
                   isLoadingSKUs={isLoadingSKUs}
                   cartItems={cartItems}
-                  onUpdateQuantity={handleUpdateCartQuantity}
-                  onRemoveFromCart={handleRemoveFromCart}
                   getOrderTotal={getOrderTotal}
-                  customer={customer}
-                  onCustomerChange={setCustomer}
-                  paymentMethod={paymentMethod}
-                  amountPaid={amountPaid}
-                  onPaymentMethodChange={setPaymentMethod}
-                  onAmountPaidChange={setAmountPaid}
                 />
               </TabsContent>
 
@@ -224,6 +213,9 @@ const Index = () => {
                   onUpdateQuantity={handleUpdateCartQuantity}
                   onRemoveItem={handleRemoveFromCart}
                   onCompleteOrder={handleCompleteOrderWithNavigation}
+                  onCustomerChange={setCustomer}
+                  onPaymentMethodChange={setPaymentMethod}
+                  onAmountPaidChange={setAmountPaid}
                 />
               </TabsContent>
             </Tabs>

@@ -3,10 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import DriverSelector from '@/components/DriverSelector';
 import SKUCatalog from '@/components/SKUCatalog';
-import Cart from '@/components/Cart';
-import CustomerForm from '@/components/CustomerForm';
-import PaymentForm from '@/components/PaymentForm';
-import { SKU, CartItem, Customer } from '@/types';
+import { SKU, CartItem } from '@/types';
 
 interface UnifiedOrderFormProps {
   // Driver and date props
@@ -23,19 +20,7 @@ interface UnifiedOrderFormProps {
   
   // Cart props
   cartItems: CartItem[];
-  onUpdateQuantity: (index: number, quantity: number) => void;
-  onRemoveFromCart: (index: number) => void;
   getOrderTotal: () => number;
-  
-  // Customer props
-  customer: Customer;
-  onCustomerChange: (customer: Customer) => void;
-  
-  // Payment props
-  paymentMethod: 'Bank Transfer' | 'POS' | '';
-  amountPaid: number;
-  onPaymentMethodChange: (method: 'Bank Transfer' | 'POS') => void;
-  onAmountPaidChange: (amount: number) => void;
 }
 
 const UnifiedOrderForm: React.FC<UnifiedOrderFormProps> = ({
@@ -48,15 +33,7 @@ const UnifiedOrderForm: React.FC<UnifiedOrderFormProps> = ({
   onAddToCart,
   isLoadingSKUs,
   cartItems,
-  onUpdateQuantity,
-  onRemoveFromCart,
-  getOrderTotal,
-  customer,
-  onCustomerChange,
-  paymentMethod,
-  amountPaid,
-  onPaymentMethodChange,
-  onAmountPaidChange
+  getOrderTotal
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -96,26 +73,6 @@ const UnifiedOrderForm: React.FC<UnifiedOrderFormProps> = ({
             </div>
           </CardContent>
         </Card>
-      )}
-      
-      {cartItems.length > 0 && (
-        <>
-          <Cart 
-            items={cartItems}
-            onUpdateQuantity={onUpdateQuantity}
-            onRemoveItem={onRemoveFromCart}
-          />
-          
-          <CustomerForm customer={customer} onChange={onCustomerChange} />
-          
-          <PaymentForm
-            paymentMethod={paymentMethod}
-            amountPaid={amountPaid}
-            orderTotal={getOrderTotal()}
-            onPaymentMethodChange={onPaymentMethodChange}
-            onAmountPaidChange={onAmountPaidChange}
-          />
-        </>
       )}
     </div>
   );

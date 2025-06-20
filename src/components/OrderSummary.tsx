@@ -1,8 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Cart from '@/components/Cart';
+import CustomerForm from '@/components/CustomerForm';
+import PaymentForm from '@/components/PaymentForm';
 import { CartItem, Customer } from '@/types';
 
 interface OrderSummaryProps {
@@ -17,6 +19,9 @@ interface OrderSummaryProps {
   onUpdateQuantity: (index: number, quantity: number) => void;
   onRemoveItem: (index: number) => void;
   onCompleteOrder: () => void;
+  onCustomerChange: (customer: Customer) => void;
+  onPaymentMethodChange: (method: 'Bank Transfer' | 'POS') => void;
+  onAmountPaidChange: (amount: number) => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -24,22 +29,25 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   customer,
   paymentMethod,
   amountPaid,
-  selectedDriver,
   orderTotal,
   canProceedToCheckout,
   isLoading,
   onUpdateQuantity,
   onRemoveItem,
-  onCompleteOrder
+  onCompleteOrder,
+  onCustomerChange,
+  onPaymentMethodChange,
+  onAmountPaidChange
 }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  if (cartItems.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-gray-500">
+          Add items to your cart to proceed with the order
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -49,26 +57,15 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         onRemoveItem={onRemoveItem}
       />
       
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <h3 className="font-semibold">Customer:</h3>
-          <p className="text-sm">{customer.name || 'Not provided'}</p>
-          <p className="text-sm">{customer.address || 'Not provided'}</p>
-          <p className="text-sm">{customer.phone || 'Not provided'}</p>
-        </CardContent>
-      </Card>
+      <CustomerForm customer={customer} onChange={onCustomerChange} />
       
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <h3 className="font-semibold">Payment & Driver:</h3>
-          <p className="text-sm">Payment Method: {paymentMethod || 'Not selected'}</p>
-          <p className="text-sm">Amount: {formatCurrency(amountPaid)}</p>
-          <p className="text-sm">
-            Balance: {formatCurrency(Math.max(0, orderTotal - amountPaid))}
-          </p>
-          <p className="text-sm">Driver: {selectedDriver || 'Not selected'}</p>
-        </CardContent>
-      </Card>
+      <PaymentForm
+        paymentMethod={paymentMethod}
+        amountPaid={amountPaid}
+        orderTotal={orderTotal}
+        onPaymentMethodChange={onPaymentMethodChange}
+        onAmountPaidChange={onAmountPaidChange}
+      />
       
       <Button 
         onClick={onCompleteOrder}

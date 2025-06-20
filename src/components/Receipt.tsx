@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { Share2, Download, FileText, Image as ImageIcon } from 'lucide-react';
+import { Share2, Download, FileText, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -35,7 +35,6 @@ const Receipt: React.FC<ReceiptProps> = ({ order, config, onShareWhatsApp }) => 
         backgroundColor: '#ffffff'
       });
       
-      // Create PDF using canvas
       const imgData = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = imgData;
@@ -63,6 +62,41 @@ const Receipt: React.FC<ReceiptProps> = ({ order, config, onShareWhatsApp }) => 
       link.click();
     } catch (error) {
       console.error('Error generating image:', error);
+    }
+  };
+
+  const handleShareWhatsAppImage = async () => {
+    if (!receiptRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `receipt-${order.id}.jpg`, { type: 'image/jpeg' });
+          
+          if (navigator.share) {
+            navigator.share({
+              files: [file],
+              title: 'Sales Receipt',
+              text: `Receipt for Order ${order.id}`
+            });
+          } else {
+            // Fallback: download the image
+            const imgData = canvas.toDataURL('image/jpeg', 0.8);
+            const link = document.createElement('a');
+            link.href = imgData;
+            link.download = `receipt-${order.id}.jpg`;
+            link.click();
+          }
+        }
+      }, 'image/jpeg', 0.8);
+    } catch (error) {
+      console.error('Error sharing image:', error);
     }
   };
 
@@ -162,14 +196,25 @@ const Receipt: React.FC<ReceiptProps> = ({ order, config, onShareWhatsApp }) => 
       </Card>
       
       <div className="space-y-2">
-        <Button 
-          onClick={onShareWhatsApp}
-          className="w-full"
-          variant="outline"
-        >
-          <Share2 className="h-4 w-4 mr-2" />
-          Share via WhatsApp
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            onClick={handleShareWhatsAppImage}
+            className="w-full"
+            variant="outline"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Share JPG
+          </Button>
+          
+          <Button 
+            onClick={onShareWhatsApp}
+            className="w-full"
+            variant="outline"
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            Share Text
+          </Button>
+        </div>
         
         <div className="grid grid-cols-2 gap-2">
           <Button 
