@@ -10,7 +10,7 @@ import { CartItem, Customer } from '@/types';
 interface OrderSummaryProps {
   cartItems: CartItem[];
   customer: Customer;
-  paymentMethod: string;
+  paymentMethod: 'Bank Transfer' | 'POS' | '';
   amountPaid: number;
   selectedDriver: string;
   orderTotal: number;

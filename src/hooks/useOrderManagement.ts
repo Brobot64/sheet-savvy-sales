@@ -81,7 +81,7 @@ export const useOrderManagement = (config: AppConfig) => {
     
     try {
       const orderTotal = getOrderTotal();
-      // Use order total if amount paid is not provided or is 0
+      // For backend posting: Use order total if amount paid is not provided or is 0
       const finalAmountPaid = amountPaid > 0 ? amountPaid : orderTotal;
       const balance = Math.max(0, orderTotal - finalAmountPaid);
       
@@ -92,7 +92,7 @@ export const useOrderManagement = (config: AppConfig) => {
         subtotal: orderTotal,
         total: orderTotal,
         paymentMethod: paymentMethod as 'Bank Transfer' | 'POS',
-        amountPaid: finalAmountPaid,
+        amountPaid: finalAmountPaid, // This will always be the correct amount for backend
         balance,
         timestamp: transactionDate,
         driver: selectedDriver
