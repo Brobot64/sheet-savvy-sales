@@ -18,7 +18,7 @@ const Index = () => {
   const [skus, setSKUs] = useState<SKU[]>([]);
   const [isLoadingSKUs, setIsLoadingSKUs] = useState(false);
   
-  const [config, setConfig] = useState<AppConfig>({
+  const getDefaultConfig = (): AppConfig => ({
     spreadsheetId: '1Ljddx01jdNdy7KPhO_8BCUMRmQ-iTznyA03DkJYOhMU',
     salesSheetGid: '311399969',
     priceSheetGid: '1324216461',
@@ -32,6 +32,44 @@ const Index = () => {
     loader2: 'Auto',
     submittedBy: 'Auto'
   });
+
+  const [config, setConfig] = useState<AppConfig>(() => {
+    // Load config from localStorage or use defaults
+    try {
+      const savedConfig = localStorage.getItem('app-config');
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        // Ensure all required fields exist by merging with defaults
+        return { ...getDefaultConfig(), ...parsed };
+      }
+    } catch (error) {
+      console.error('Error loading saved config:', error);
+    }
+    return getDefaultConfig();
+  });
+
+  const handleConfigSave = (newConfig: AppConfig) => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('app-config', JSON.stringify(newConfig));
+      setConfig(newConfig);
+      
+      toast({
+        title: "Configuration Saved",
+        description: "Your settings have been saved successfully.",
+      });
+      
+      // Reload SKU data with new config
+      loadSKUData(newConfig);
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save configuration.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const {
     cartItems,
@@ -60,12 +98,13 @@ const Index = () => {
 
   useEffect(() => {
     loadSKUData();
-  }, [config]);
+  }, []);
 
-  const loadSKUData = async () => {
+  const loadSKUData = async (configToUse?: AppConfig) => {
+    const activeConfig = configToUse || config;
     setIsLoadingSKUs(true);
     try {
-      const skuData = await sheetsService.getSKUData(config);
+      const skuData = await sheetsService.getSKUData(activeConfig);
       setSKUs(skuData);
       
       toast({
@@ -80,7 +119,7 @@ const Index = () => {
         variant: "destructive",
       });
       
-      const fallbackSKUs = await sheetsService.getSKUData(config);
+      const fallbackSKUs = await sheetsService.getSKUData(activeConfig);
       setSKUs(fallbackSKUs);
     } finally {
       setIsLoadingSKUs(false);
@@ -159,7 +198,7 @@ const Index = () => {
       <div className="max-w-md mx-auto bg-white min-h-screen">
         <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">GrandPro Sales App</h1>
-          <Settings config={config} onSave={setConfig} />
+          <Settings config={config} onSave={handleConfigSave} />
         </div>
 
         <div className="p-4">

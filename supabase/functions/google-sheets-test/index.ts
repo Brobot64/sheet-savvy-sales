@@ -12,7 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting Google Sheets test with GID...')
+    console.log('Starting Google Sheets test with user configuration...')
+    
+    // Get the configuration from request body
+    const body = await req.json()
+    const { spreadsheetId, priceSheetGid } = body
+    
+    console.log('Received config:', { spreadsheetId, priceSheetGid })
     
     // Get the service account credentials from Supabase secrets
     const serviceAccountKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY')
@@ -101,13 +107,13 @@ serve(async (req) => {
     }
     console.log('Access token obtained successfully')
 
-    // Test with GID-based URL (using the price sheet GID from your config)
-    const spreadsheetId = '1Ljddx01jdNdy7KPhO_8BCUMRmQ-iTznyA03DkJYOhMU'
-    const gid = '1324216461' // Price sheet GID
+    // Use the user's configuration instead of hardcoded values
+    const testSpreadsheetId = spreadsheetId || '1Ljddx01jdNdy7KPhO_8BCUMRmQ-iTznyA03DkJYOhMU'
+    const testGid = priceSheetGid || '1324216461'
     
     // Use the export format with GID - this bypasses sheet name parsing entirely
-    const sheetsUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`
-    console.log('Testing with GID URL:', sheetsUrl)
+    const sheetsUrl = `https://docs.google.com/spreadsheets/d/${testSpreadsheetId}/export?format=csv&gid=${testGid}`
+    console.log('Testing with user GID URL:', sheetsUrl)
     
     const sheetsResponse = await fetch(sheetsUrl, {
       headers: {
@@ -118,6 +124,12 @@ serve(async (req) => {
     if (!sheetsResponse.ok) {
       const errorText = await sheetsResponse.text()
       console.error('Google Sheets API error:', sheetsResponse.status, errorText)
+      
+      // Check if it's an access denied error
+      if (sheetsResponse.status === 403) {
+        throw new Error(`Access denied to spreadsheet. Please ensure:\n1. The spreadsheet is shared with the service account\n2. The service account has Editor permissions\n3. The spreadsheet ID and GID are correct`)
+      }
+      
       throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorText}`)
     }
 
@@ -133,9 +145,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Connection test successful using GID',
+        message: `Connection test successful using user configuration (Spreadsheet: ${testSpreadsheetId}, GID: ${testGid})`,
         rowCount: filteredRows.length,
-        sampleData: filteredRows.slice(0, 3) // First 3 rows as sample
+        sampleData: filteredRows.slice(0, 3), // First 3 rows as sample
+        config: { spreadsheetId: testSpreadsheetId, gid: testGid }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

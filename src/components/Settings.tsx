@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save, Plus, Trash2, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +22,11 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isTestingGid, setIsTestingGid] = useState(false);
   const [gidTestResult, setGidTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
+
+  // Update editedConfig when config prop changes
+  useEffect(() => {
+    setEditedConfig(config);
+  }, [config]);
 
   const handleSave = () => {
     onSave(editedConfig);
@@ -65,9 +69,12 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
     setGidTestResult(null);
     
     try {
-      console.log('Testing GID connection...');
+      console.log('Testing GID connection with user config...');
       const { data, error } = await supabase.functions.invoke('google-sheets-test', {
-        body: {}
+        body: {
+          spreadsheetId: editedConfig.spreadsheetId,
+          priceSheetGid: editedConfig.priceSheetGid
+        }
       });
 
       if (error) {
