@@ -75,6 +75,10 @@ export class GoogleSheetsService {
 
       if (data?.error) {
         console.error('Google Sheets write error:', data.error);
+        // Check for specific protection error
+        if (data.error.includes('protected cell or object')) {
+          throw new Error('SHEET_PROTECTED: The Google Sheet has protected cells that prevent writing. Please contact the sheet owner to remove protection or grant edit access to the service account.');
+        }
         throw new Error(`Google Sheets error: ${data.error}`);
       }
 
@@ -161,12 +165,19 @@ export class GoogleSheetsService {
       gid: config.salesSheetGid
     });
     
-    await this.appendToSheet(
-      config.spreadsheetId, 
-      sheetRange, 
-      salesRecords, 
-      config.salesSheetGid
-    );
+    try {
+      await this.appendToSheet(
+        config.spreadsheetId, 
+        sheetRange, 
+        salesRecords, 
+        config.salesSheetGid
+      );
+    } catch (error) {
+      if (error.message?.includes('SHEET_PROTECTED')) {
+        throw new Error('SHEET_PROTECTED: Cannot write to protected Google Sheet. Please remove sheet protection or grant edit access.');
+      }
+      throw error;
+    }
   }
 
   async writePaymentRecord(order: Order, config: AppConfig): Promise<void> {
@@ -196,12 +207,19 @@ export class GoogleSheetsService {
       gid: config.paymentsSheetGid
     });
     
-    await this.appendToSheet(
-      config.spreadsheetId, 
-      sheetRange, 
-      [paymentRecord], 
-      config.paymentsSheetGid
-    );
+    try {
+      await this.appendToSheet(
+        config.spreadsheetId, 
+        sheetRange, 
+        [paymentRecord], 
+        config.paymentsSheetGid
+      );
+    } catch (error) {
+      if (error.message?.includes('SHEET_PROTECTED')) {
+        throw new Error('SHEET_PROTECTED: Cannot write to protected Google Sheet. Please remove sheet protection or grant edit access.');
+      }
+      throw error;
+    }
   }
 
   async testConnection(config: AppConfig): Promise<{ success: boolean; message: string }> {

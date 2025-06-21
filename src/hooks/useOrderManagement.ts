@@ -103,8 +103,28 @@ export const useOrderManagement = (config: AppConfig) => {
         backendAmountPaid: backendAmountPaid
       });
       
-      await sheetsService.writeSalesRecord(order, config);
-      await sheetsService.writePaymentRecord(order, config);
+      try {
+        await sheetsService.writeSalesRecord(order, config);
+        await sheetsService.writePaymentRecord(order, config);
+      } catch (error) {
+        console.error('Google Sheets write error:', error);
+        
+        if (error.message?.includes('SHEET_PROTECTED')) {
+          toast({
+            title: "Google Sheets Protection Error",
+            description: "The Google Sheet is protected and cannot be edited. Please contact the sheet owner to remove protection or grant edit access to continue recording orders.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // For other errors, still create the order but warn the user
+        toast({
+          title: "Warning: Data Not Saved to Sheets",
+          description: "Order created successfully but could not be saved to Google Sheets. Please check your sheet configuration.",
+          variant: "destructive",
+        });
+      }
       
       // For the receipt and UI, keep the actual amount paid (including 0)
       const displayOrder = {
@@ -117,7 +137,7 @@ export const useOrderManagement = (config: AppConfig) => {
       
       toast({
         title: "Order Completed!",
-        description: `Order ${order.id} has been processed and recorded securely.`,
+        description: `Order ${order.id} has been processed successfully.`,
       });
       
       return displayOrder;
