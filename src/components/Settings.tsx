@@ -203,9 +203,9 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                 <AlertDescription className="text-yellow-800">
                   <strong>Required Sheet Names:</strong><br/>
                   • PriceData - for product pricing<br/>
-                  • SalesData - for sales records<br/>
-                  • PaymentData - for payment records<br/>
-                  Sheet names should not contain spaces or special characters.
+                  • Processed Data Sales - for sales records<br/>
+                  • Processed Customer Bank Transfer - for payment records<br/>
+                  Make sure these sheets exist in your spreadsheet.
                 </AlertDescription>
               </Alert>
               
@@ -217,7 +217,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                     ...prev,
                     salesSheetGid: e.target.value
                   }))}
-                  placeholder="Enter sales sheet GID"
+                  placeholder="Enter sales sheet GID (for Processed Data Sales)"
                 />
               </div>
               
@@ -229,7 +229,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                     ...prev,
                     priceSheetGid: e.target.value
                   }))}
-                  placeholder="Enter price sheet GID"
+                  placeholder="Enter price sheet GID (for PriceData)"
                 />
               </div>
               
@@ -241,7 +241,7 @@ const Settings: React.FC<SettingsProps> = ({ config, onSave }) => {
                     ...prev,
                     paymentsSheetGid: e.target.value
                   }))}
-                  placeholder="Enter payments sheet GID"
+                  placeholder="Enter payments sheet GID (for Processed Customer Bank Transfer)"
                 />
               </div>
             </CardContent>

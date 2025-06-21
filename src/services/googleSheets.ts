@@ -149,13 +149,13 @@ export class GoogleSheetsService {
     console.log('Writing sales records to sheet:', {
       recordCount: salesRecords.length,
       spreadsheetId: config.spreadsheetId,
-      range: 'SalesData!A:S',
+      range: 'Processed Data Sales!A:S',
       gid: config.salesSheetGid
     });
     
     await this.appendToSheet(
       config.spreadsheetId, 
-      'SalesData!A:S', 
+      'Processed Data Sales!A:S', 
       salesRecords, 
       config.salesSheetGid
     );
@@ -183,13 +183,13 @@ export class GoogleSheetsService {
     console.log('Writing payment record to sheet:', {
       record: paymentRecord,
       spreadsheetId: config.spreadsheetId,
-      range: 'PaymentData!A:K',
+      range: 'Processed Customer Bank Transfer!A:K',
       gid: config.paymentsSheetGid
     });
     
     await this.appendToSheet(
       config.spreadsheetId, 
-      'PaymentData!A:K', 
+      'Processed Customer Bank Transfer!A:K', 
       [paymentRecord], 
       config.paymentsSheetGid
     );
