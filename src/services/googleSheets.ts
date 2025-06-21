@@ -186,25 +186,39 @@ export class GoogleSheetsService {
     const deliveryDate = currentDate.toLocaleDateString('en-GB');
 
     const paymentRecord = [
-      timestamp, // Timestamp
-      deliveryDate, // Delivery Date
-      order.paymentMethod === 'Bank Transfer' ? 'STANBIC' : 'POS', // Bank
-      'Warehouse 1 - A', // Warehouse
-      order.driver || config.drivers[0] || 'DEPOT BULK', // Driver
-      order.customer.name || '', // Customer Name
-      order.amountPaid || 0, // AMOUNT
-      'Y', // USE NOW
-      '', // FORWARDED DATE
-      deliveryDate, // NEW DATE
-      config.submittedBy || 'Auto' // Submitted By
+      timestamp, // Timestamp (Column A)
+      deliveryDate, // Delivery Date (Column B)
+      order.paymentMethod === 'Bank Transfer' ? 'STANBIC' : 'POS', // Bank (Column C)
+      'Warehouse 1 - A', // Warehouse (Column D)
+      order.driver || config.drivers[0] || 'DEPOT BULK', // Driver (Column E)
+      order.customer.name || '', // Customer Name (Column F)
+      order.amountPaid || 0, // AMOUNT (Column G)
+      'Y', // USE NOW (Column H)
+      '', // FORWARDED DATE (Column I)
+      deliveryDate, // NEW DATE (Column J)
+      config.submittedBy || 'Auto' // Submitted By (Column K)
     ];
 
-    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A:K');
+    // Use a more specific range to ensure data starts from column A
+    const sheetRange = 'Processed Customer Bank Transfer!A:K';
     console.log('Writing payment record to sheet:', {
       record: paymentRecord,
       spreadsheetId: config.spreadsheetId,
       range: sheetRange,
-      gid: config.paymentsSheetGid
+      gid: config.paymentsSheetGid,
+      columnMapping: {
+        A: 'Timestamp',
+        B: 'Delivery Date', 
+        C: 'Bank',
+        D: 'Warehouse',
+        E: 'Driver',
+        F: 'Customer Name',
+        G: 'Amount',
+        H: 'Use Now',
+        I: 'Forwarded Date',
+        J: 'New Date',
+        K: 'Submitted By'
+      }
     });
     
     try {
