@@ -10,7 +10,7 @@ interface OperationsConfigCardProps {
   onConfigChange: (config: AppConfig) => void;
 }
 
-const OperationsConfigCard: React.FC<Operations onfigCardProps> = ({ config, onConfigChange }) => {
+const OperationsConfigCard: React.FC<OperationsConfigCardProps> = ({ config, onConfigChange }) => {
   return (
     <Card>
       <CardHeader>
