@@ -17,6 +17,13 @@ export class GoogleSheetsService {
     console.log('API key setting is deprecated. Using Supabase Edge Functions for secure authentication.');
   }
 
+  // Helper method to properly encode sheet ranges for Google Sheets API
+  private encodeSheetRange(sheetName: string, range: string): string {
+    // Encode sheet name if it contains spaces or special characters
+    const encodedSheetName = sheetName.includes(' ') ? `'${sheetName}'` : sheetName;
+    return `${encodedSheetName}!${range}`;
+  }
+
   async fetchSheetData(spreadsheetId: string, range: string, gid?: string): Promise<any[][]> {
     try {
       console.log('Fetching sheet data via Supabase Edge Function...');
@@ -146,16 +153,17 @@ export class GoogleSheetsService {
       salesRecords.push(record);
     });
 
+    const sheetRange = this.encodeSheetRange('Processed Data Sales', 'A:S');
     console.log('Writing sales records to sheet:', {
       recordCount: salesRecords.length,
       spreadsheetId: config.spreadsheetId,
-      range: 'Processed Data Sales!A:S',
+      range: sheetRange,
       gid: config.salesSheetGid
     });
     
     await this.appendToSheet(
       config.spreadsheetId, 
-      'Processed Data Sales!A:S', 
+      sheetRange, 
       salesRecords, 
       config.salesSheetGid
     );
@@ -180,16 +188,17 @@ export class GoogleSheetsService {
       config.submittedBy || 'Auto' // Submitted By
     ];
 
+    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A:K');
     console.log('Writing payment record to sheet:', {
       record: paymentRecord,
       spreadsheetId: config.spreadsheetId,
-      range: 'Processed Customer Bank Transfer!A:K',
+      range: sheetRange,
       gid: config.paymentsSheetGid
     });
     
     await this.appendToSheet(
       config.spreadsheetId, 
-      'Processed Customer Bank Transfer!A:K', 
+      sheetRange, 
       [paymentRecord], 
       config.paymentsSheetGid
     );
