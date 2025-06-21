@@ -7,6 +7,7 @@ import UnifiedOrderForm from '@/components/UnifiedOrderForm';
 import Receipt from '@/components/Receipt';
 import Settings from '@/components/Settings';
 import OrderSummary from '@/components/OrderSummary';
+import AuthDialog from '@/components/AuthDialog';
 
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { useAppConfig } from '@/hooks/useAppConfig';
@@ -15,7 +16,8 @@ import { useWhatsAppShare } from '@/components/WhatsAppShare';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('order');
-  const { config, handleConfigSave } = useAppConfig();
+  const [authKey, setAuthKey] = useState(0); // Force re-render on auth changes
+  const { config, handleConfigSave, isLoading: isConfigLoading, isAuthenticated } = useAppConfig();
   const { skus, isLoadingSKUs, loadSKUData } = useSKUManagement();
   const { handleShareWhatsApp } = useWhatsAppShare();
 
@@ -43,12 +45,14 @@ const Index = () => {
   } = useOrderManagement(config);
 
   useEffect(() => {
-    loadSKUData(config);
-  }, []);
+    if (!isConfigLoading) {
+      loadSKUData(config);
+    }
+  }, [config, isConfigLoading]);
 
   const handleConfigSaveWithReload = async (newConfig: any) => {
     try {
-      const savedConfig = handleConfigSave(newConfig);
+      const savedConfig = await handleConfigSave(newConfig);
       // Reload SKU data with new config
       await loadSKUData(savedConfig);
     } catch (error) {
@@ -73,15 +77,41 @@ const Index = () => {
     }
   };
 
+  const handleAuthChange = () => {
+    setAuthKey(prev => prev + 1); // Force re-render to refresh config
+  };
+
+  if (isConfigLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen">
         <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">GrandPro Sales App</h1>
-          <Settings config={config} onSave={handleConfigSaveWithReload} />
+          <div className="flex items-center gap-2">
+            <AuthDialog user={isAuthenticated} onAuthChange={handleAuthChange} />
+            <Settings config={config} onSave={handleConfigSaveWithReload} />
+          </div>
         </div>
 
         <div className="p-4">
+          {!isAuthenticated && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Sign in to sync your settings</strong> across devices and ensure your configuration is always saved.
+              </p>
+            </div>
+          )}
+
           {currentOrder ? (
             <div className="space-y-4">
               <Receipt 

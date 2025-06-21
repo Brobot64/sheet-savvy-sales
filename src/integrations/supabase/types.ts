@@ -9,7 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      app_configs: {
+        Row: {
+          company_address: string
+          company_name: string
+          company_phone: string
+          created_at: string
+          drivers: string[]
+          google_sheets_api_key: string | null
+          id: string
+          loader1: string
+          loader2: string
+          payments_sheet_gid: string
+          price_sheet_gid: string
+          sales_sheet_gid: string
+          spreadsheet_id: string
+          submitted_by: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_address: string
+          company_name: string
+          company_phone: string
+          created_at?: string
+          drivers?: string[]
+          google_sheets_api_key?: string | null
+          id?: string
+          loader1?: string
+          loader2?: string
+          payments_sheet_gid: string
+          price_sheet_gid: string
+          sales_sheet_gid: string
+          spreadsheet_id: string
+          submitted_by?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_address?: string
+          company_name?: string
+          company_phone?: string
+          created_at?: string
+          drivers?: string[]
+          google_sheets_api_key?: string | null
+          id?: string
+          loader1?: string
+          loader2?: string
+          payments_sheet_gid?: string
+          price_sheet_gid?: string
+          sales_sheet_gid?: string
+          spreadsheet_id?: string
+          submitted_by?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
