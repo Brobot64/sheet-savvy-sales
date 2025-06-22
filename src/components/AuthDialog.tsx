@@ -10,10 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface AuthDialogProps {
   user: any;
-  onAuthChange: () => void;
 }
 
-const AuthDialog: React.FC<AuthDialogProps> = ({ user, onAuthChange }) => {
+const AuthDialog: React.FC<AuthDialogProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -34,18 +33,17 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ user, onAuthChange }) => {
       if (error) throw error;
 
       toast({
-        title: "Signed In",
-        description: "Welcome back! Your settings will now sync across devices.",
+        title: "Signed In Successfully",
+        description: "Welcome back! Your settings will now be loaded from your account.",
       });
       
       setIsOpen(false);
       setEmail('');
       setPassword('');
-      onAuthChange();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign In Failed",
-        description: error.message,
+        description: error.message || "Failed to sign in. Please check your credentials.",
         variant: "destructive",
       });
     } finally {
@@ -76,10 +74,10 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ user, onAuthChange }) => {
       setIsOpen(false);
       setEmail('');
       setPassword('');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign Up Failed",
-        description: error.message,
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -92,13 +90,12 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ user, onAuthChange }) => {
       await supabase.auth.signOut();
       toast({
         title: "Signed Out",
-        description: "You have been signed out successfully.",
+        description: "You have been signed out. Settings will now be stored locally only.",
       });
-      onAuthChange();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign Out Failed",
-        description: error.message,
+        description: error.message || "Failed to sign out.",
         variant: "destructive",
       });
     }
@@ -148,6 +145,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ user, onAuthChange }) => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              minLength={6}
             />
           </div>
           

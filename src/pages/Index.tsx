@@ -16,7 +16,6 @@ import { useWhatsAppShare } from '@/components/WhatsAppShare';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('order');
-  const [authKey, setAuthKey] = useState(0); // Force re-render on auth changes
   const { config, handleConfigSave, isLoading: isConfigLoading, isAuthenticated } = useAppConfig();
   const { skus, isLoadingSKUs, loadSKUData } = useSKUManagement();
   const { handleShareWhatsApp } = useWhatsAppShare();
@@ -77,10 +76,6 @@ const Index = () => {
     }
   };
 
-  const handleAuthChange = () => {
-    setAuthKey(prev => prev + 1); // Force re-render to refresh config
-  };
-
   if (isConfigLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -98,7 +93,7 @@ const Index = () => {
         <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">GrandPro Sales App</h1>
           <div className="flex items-center gap-2">
-            <AuthDialog user={isAuthenticated} onAuthChange={handleAuthChange} />
+            <AuthDialog user={isAuthenticated} />
             <Settings config={config} onSave={handleConfigSaveWithReload} />
           </div>
         </div>

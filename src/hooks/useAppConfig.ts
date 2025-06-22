@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { AppConfig } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 const getDefaultConfig = (): AppConfig => ({
   spreadsheetId: '1Ljddx01jdNdy7KPhO_8BCUMRmQ-iTznyA03DkJYOhMU',
@@ -23,36 +24,14 @@ export const useAppConfig = () => {
   const { toast } = useToast();
   const [config, setConfig] = useState<AppConfig>(getDefaultConfig());
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadConfigFromSupabase(session.user.id);
-      } else {
-        // If no user, load from localStorage as fallback
-        loadConfigFromLocalStorage();
-      }
-    });
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadConfigFromSupabase(session.user.id);
-      } else {
-        loadConfigFromLocalStorage();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const [user, setUser] = useState<User | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const loadConfigFromSupabase = async (userId: string) => {
     try {
+      console.log('Loading config from Supabase for user:', userId);
       setIsLoading(true);
+      
       const { data, error } = await supabase
         .from('app_configs')
         .select('*')
@@ -63,11 +42,17 @@ export const useAppConfig = () => {
 
       if (error) {
         console.error('Error loading config from Supabase:', error);
-        loadConfigFromLocalStorage();
-        return;
+        toast({
+          title: "Config Load Warning",
+          description: "Failed to load saved settings from database. Using defaults.",
+          variant: "destructive",
+        });
+        const localConfig = loadConfigFromLocalStorage();
+        return localConfig;
       }
 
       if (data) {
+        console.log('Config loaded from Supabase:', data);
         const loadedConfig: AppConfig = {
           spreadsheetId: data.spreadsheet_id,
           salesSheetGid: data.sales_sheet_gid,
@@ -83,17 +68,27 @@ export const useAppConfig = () => {
           submittedBy: data.submitted_by
         };
         setConfig(loadedConfig);
+        // Also save to localStorage as backup
+        localStorage.setItem('app-config', JSON.stringify(loadedConfig));
+        return loadedConfig;
       } else {
-        // No config found, use defaults but try to migrate from localStorage
+        console.log('No config found in Supabase, checking localStorage');
+        // No config found, try to migrate from localStorage
         const localConfig = loadConfigFromLocalStorage();
-        if (localConfig) {
-          // Migrate localStorage config to Supabase
+        if (localConfig && JSON.stringify(localConfig) !== JSON.stringify(getDefaultConfig())) {
+          console.log('Migrating localStorage config to Supabase');
           await saveConfigToSupabase(userId, localConfig);
         }
+        return localConfig;
       }
     } catch (error) {
       console.error('Error loading config from Supabase:', error);
-      loadConfigFromLocalStorage();
+      toast({
+        title: "Config Load Error",
+        description: "Database connection failed. Using local settings.",
+        variant: "destructive",
+      });
+      return loadConfigFromLocalStorage();
     } finally {
       setIsLoading(false);
     }
@@ -105,21 +100,24 @@ export const useAppConfig = () => {
       if (savedConfig) {
         const parsed = JSON.parse(savedConfig);
         const mergedConfig = { ...getDefaultConfig(), ...parsed };
+        console.log('Config loaded from localStorage:', mergedConfig);
         setConfig(mergedConfig);
-        setIsLoading(false);
         return mergedConfig;
       }
     } catch (error) {
       console.error('Error loading saved config from localStorage:', error);
     }
     
-    setConfig(getDefaultConfig());
-    setIsLoading(false);
-    return null;
+    console.log('Using default config');
+    const defaultConfig = getDefaultConfig();
+    setConfig(defaultConfig);
+    return defaultConfig;
   };
 
   const saveConfigToSupabase = async (userId: string, configToSave: AppConfig) => {
     try {
+      console.log('Saving config to Supabase for user:', userId, configToSave);
+      
       const configData = {
         user_id: userId,
         spreadsheet_id: configToSave.spreadsheetId,
@@ -144,7 +142,7 @@ export const useAppConfig = () => {
         .maybeSingle();
 
       if (existingConfig) {
-        // Update existing config
+        console.log('Updating existing config:', existingConfig.id);
         const { error } = await supabase
           .from('app_configs')
           .update(configData)
@@ -152,21 +150,92 @@ export const useAppConfig = () => {
 
         if (error) throw error;
       } else {
-        // Insert new config
+        console.log('Creating new config');
         const { error } = await supabase
           .from('app_configs')
           .insert([configData]);
 
         if (error) throw error;
       }
+      
+      console.log('Config saved successfully to Supabase');
     } catch (error) {
       console.error('Error saving config to Supabase:', error);
       throw error;
     }
   };
 
+  // Initialize auth state and config loading
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+
+        if (!mounted) return;
+
+        if (session?.user) {
+          console.log('Initial session found, user:', session.user.id);
+          setUser(session.user);
+          await loadConfigFromSupabase(session.user.id);
+        } else {
+          console.log('No initial session, loading from localStorage');
+          setUser(null);
+          loadConfigFromLocalStorage();
+          setIsLoading(false);
+        }
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          loadConfigFromLocalStorage();
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+      }
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (!mounted) return;
+
+      if (session?.user) {
+        setUser(session.user);
+        if (isInitialized) {
+          // Only reload config if we're already initialized (not on first load)
+          await loadConfigFromSupabase(session.user.id);
+        }
+      } else {
+        setUser(null);
+        if (isInitialized) {
+          // Load from localStorage when user logs out
+          loadConfigFromLocalStorage();
+          setIsLoading(false);
+        }
+      }
+    });
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [isInitialized]);
+
   const handleConfigSave = async (newConfig: AppConfig) => {
     try {
+      console.log('Saving config:', newConfig);
+      
       // Always save to localStorage as backup
       localStorage.setItem('app-config', JSON.stringify(newConfig));
       setConfig(newConfig);
@@ -174,21 +243,23 @@ export const useAppConfig = () => {
       // If user is logged in, save to Supabase
       if (user) {
         await saveConfigToSupabase(user.id, newConfig);
+        toast({
+          title: "Configuration Saved",
+          description: "Your settings have been saved to your account and will sync across devices.",
+        });
+      } else {
+        toast({
+          title: "Configuration Saved Locally",
+          description: "Settings saved locally. Sign in to save across devices.",
+        });
       }
-      
-      toast({
-        title: "Configuration Saved",
-        description: user 
-          ? "Your settings have been saved to your account." 
-          : "Your settings have been saved locally. Sign in to save across devices.",
-      });
       
       return newConfig;
     } catch (error) {
       console.error('Error saving config:', error);
       toast({
         title: "Save Failed",
-        description: "Failed to save configuration. Please try again.",
+        description: "Failed to save configuration to database. Settings saved locally only.",
         variant: "destructive",
       });
       throw error;
