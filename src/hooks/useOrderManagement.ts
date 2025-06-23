@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CartItem, Customer, Order, AppConfig } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -93,12 +94,14 @@ export const useOrderManagement = (config: AppConfig) => {
         paymentMethod: paymentMethod as 'Bank Transfer' | 'POS',
         amountPaid: backendAmountPaid, // This goes to backend - order total when 0 is entered
         balance,
-        timestamp: transactionDate,
+        timestamp: transactionDate, // Use the selected transaction date
         driver: selectedDriver
       };
 
-      console.log('Writing order to Google Sheets via Supabase Edge Functions:', {
-        ...order,
+      console.log('Writing order to Google Sheets with selected date:', {
+        orderId: order.id,
+        selectedDate: transactionDate,
+        formattedDate: transactionDate.toISOString(),
         originalAmountPaid: amountPaid,
         backendAmountPaid: backendAmountPaid
       });

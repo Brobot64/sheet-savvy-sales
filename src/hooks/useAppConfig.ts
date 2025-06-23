@@ -30,7 +30,6 @@ export const useAppConfig = () => {
   const loadConfigFromSupabase = async (userId: string) => {
     try {
       console.log('Loading config from Supabase for user:', userId);
-      setIsLoading(true);
       
       const { data, error } = await supabase
         .from('app_configs')
@@ -89,8 +88,6 @@ export const useAppConfig = () => {
         variant: "destructive",
       });
       return loadConfigFromLocalStorage();
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -168,9 +165,12 @@ export const useAppConfig = () => {
   // Initialize auth state and config loading
   useEffect(() => {
     let mounted = true;
+    let configLoaded = false;
 
     const initializeAuth = async () => {
       try {
+        setIsLoading(true);
+        
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
@@ -183,19 +183,22 @@ export const useAppConfig = () => {
           console.log('Initial session found, user:', session.user.id);
           setUser(session.user);
           await loadConfigFromSupabase(session.user.id);
+          configLoaded = true;
         } else {
           console.log('No initial session, loading from localStorage');
           setUser(null);
           loadConfigFromLocalStorage();
-          setIsLoading(false);
+          configLoaded = true;
         }
-        
-        setIsInitialized(true);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
           setUser(null);
           loadConfigFromLocalStorage();
+          configLoaded = true;
+        }
+      } finally {
+        if (mounted) {
           setIsLoading(false);
           setIsInitialized(true);
         }
@@ -208,19 +211,27 @@ export const useAppConfig = () => {
       
       if (!mounted) return;
 
-      if (session?.user) {
+      // Only handle auth changes after initial load
+      if (!configLoaded) return;
+
+      if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
-        if (isInitialized) {
-          // Only reload config if we're already initialized (not on first load)
-          await loadConfigFromSupabase(session.user.id);
+        // Only reload config on sign in, not on token refresh
+        if (event === 'SIGNED_IN') {
+          setIsLoading(true);
+          try {
+            await loadConfigFromSupabase(session.user.id);
+          } finally {
+            setIsLoading(false);
+          }
         }
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        if (isInitialized) {
-          // Load from localStorage when user logs out
-          loadConfigFromLocalStorage();
-          setIsLoading(false);
-        }
+        // Load from localStorage when user logs out
+        loadConfigFromLocalStorage();
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Just update user state on token refresh, don't reload config
+        setUser(session.user);
       }
     });
 
@@ -230,7 +241,7 @@ export const useAppConfig = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [isInitialized]);
+  }, []);
 
   const handleConfigSave = async (newConfig: AppConfig) => {
     try {
