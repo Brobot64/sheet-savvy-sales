@@ -99,14 +99,6 @@ const Index = () => {
         </div>
 
         <div className="p-4">
-          {!isAuthenticated && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                <strong>Sign in to sync your settings</strong> across devices and ensure your configuration is always saved.
-              </p>
-            </div>
-          )}
-
           {currentOrder ? (
             <div className="space-y-4">
               <Receipt 

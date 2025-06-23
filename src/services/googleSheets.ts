@@ -1,3 +1,4 @@
+
 import { SKU, SalesRecord, PaymentRecord, AppConfig, Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -125,15 +126,16 @@ export class GoogleSheetsService {
 
   async writeSalesRecord(order: Order, config: AppConfig): Promise<void> {
     const salesRecords: any[][] = [];
-    const currentDate = new Date();
-    const timestamp = currentDate.toISOString();
-    const transactionDate = currentDate.toLocaleDateString('en-GB');
+    // Use the selected transaction date from the order, not current date
+    const selectedDate = new Date(order.timestamp);
+    const timestamp = selectedDate.toISOString();
+    const transactionDate = selectedDate.toLocaleDateString('en-GB');
 
     // Create a sales record for each line item
     order.items.forEach(item => {
       const record = [
-        timestamp, // Timestamp
-        transactionDate, // Transaction Date
+        timestamp, // Timestamp - using selected date
+        transactionDate, // Transaction Date - using selected date
         'Warehouse 1 - A', // Warehouse
         'Load Out', // Load Out/In
         item.sku.name || '', // SKU Name
@@ -153,7 +155,7 @@ export class GoogleSheetsService {
         order.balance || 0 // Balance
       ];
       
-      console.log('Sales record for item:', item.sku.name, record);
+      console.log('Sales record for item:', item.sku.name, 'with selected date:', selectedDate, record);
       salesRecords.push(record);
     });
 
@@ -162,7 +164,8 @@ export class GoogleSheetsService {
       recordCount: salesRecords.length,
       spreadsheetId: config.spreadsheetId,
       range: sheetRange,
-      gid: config.salesSheetGid
+      gid: config.salesSheetGid,
+      selectedDate: selectedDate.toISOString()
     });
     
     try {
@@ -181,13 +184,14 @@ export class GoogleSheetsService {
   }
 
   async writePaymentRecord(order: Order, config: AppConfig): Promise<void> {
-    const currentDate = new Date();
-    const timestamp = currentDate.toISOString();
-    const deliveryDate = currentDate.toLocaleDateString('en-GB');
+    // Use the selected transaction date from the order, not current date
+    const selectedDate = new Date(order.timestamp);
+    const timestamp = selectedDate.toISOString();
+    const deliveryDate = selectedDate.toLocaleDateString('en-GB');
 
     const paymentRecord = [
-      timestamp, // Timestamp (Column A)
-      deliveryDate, // Delivery Date (Column B)
+      timestamp, // Timestamp (Column A) - using selected date
+      deliveryDate, // Delivery Date (Column B) - using selected date
       order.paymentMethod === 'Bank Transfer' ? 'STANBIC' : 'POS', // Bank (Column C)
       'Warehouse 1 - A', // Warehouse (Column D)
       order.driver || config.drivers[0] || 'DEPOT BULK', // Driver (Column E)
@@ -195,7 +199,7 @@ export class GoogleSheetsService {
       order.amountPaid || 0, // AMOUNT (Column G)
       'Y', // USE NOW (Column H)
       '', // FORWARDED DATE (Column I)
-      deliveryDate, // NEW DATE (Column J)
+      deliveryDate, // NEW DATE (Column J) - using selected date
       config.submittedBy || 'Auto' // Submitted By (Column K)
     ];
 
@@ -206,6 +210,7 @@ export class GoogleSheetsService {
       spreadsheetId: config.spreadsheetId,
       range: sheetRange,
       gid: config.paymentsSheetGid,
+      selectedDate: selectedDate.toISOString(),
       columnMapping: {
         A: 'Timestamp',
         B: 'Delivery Date', 
