@@ -208,8 +208,8 @@ export class GoogleSheetsService {
       config.submittedBy || 'Auto' // Submitted By (Column K)
     ];
 
-    // Use the same encoding method as sales records to ensure consistency
-    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A:K');
+    // Use explicit starting position instead of column range to prevent API confusion
+    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A1:K1');
     console.log('Writing payment record to sheet:', {
       record: paymentRecord,
       spreadsheetId: config.spreadsheetId,
