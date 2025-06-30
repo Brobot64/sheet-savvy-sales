@@ -1,4 +1,3 @@
-
 import { SKU, SalesRecord, PaymentRecord, AppConfig, Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -208,29 +207,27 @@ export class GoogleSheetsService {
       config.submittedBy || 'Auto' // Submitted By (Column K)
     ];
 
-    // Use explicit starting position instead of column range to prevent API confusion
-    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A1:K1');
-    console.log('Writing payment record to sheet:', {
-      record: paymentRecord,
-      spreadsheetId: config.spreadsheetId,
-      range: sheetRange,
-      gid: config.paymentsSheetGid,
-      transactionDate: deliveryDate,
-      timestamp: timestamp,
-      columnMapping: {
-        A: 'Timestamp (current time)',
-        B: 'Delivery Date (selected date)', 
-        C: 'Bank',
-        D: 'Warehouse',
-        E: 'Driver',
-        F: 'Customer Name',
-        G: 'Amount',
-        H: 'Use Now',
-        I: 'Forwarded Date',
-        J: 'New Date (selected date)',
-        K: 'Submitted By'
-      }
-    });
+    // Revert to column range to restore append functionality
+    const sheetRange = this.encodeSheetRange('Processed Customer Bank Transfer', 'A:K');
+    
+    console.log('=== PAYMENT RECORD DEBUG INFO ===');
+    console.log('Payment record array length:', paymentRecord.length);
+    console.log('Payment record values:', paymentRecord);
+    console.log('Expected column mapping:');
+    console.log('  A: Timestamp -', paymentRecord[0]);
+    console.log('  B: Delivery Date -', paymentRecord[1]);
+    console.log('  C: Bank -', paymentRecord[2]);
+    console.log('  D: Warehouse -', paymentRecord[3]);
+    console.log('  E: Driver -', paymentRecord[4]);
+    console.log('  F: Customer Name -', paymentRecord[5]);
+    console.log('  G: Amount -', paymentRecord[6]);
+    console.log('  H: Use Now -', paymentRecord[7]);
+    console.log('  I: Forwarded Date -', paymentRecord[8]);
+    console.log('  J: New Date -', paymentRecord[9]);
+    console.log('  K: Submitted By -', paymentRecord[10]);
+    console.log('Sheet range:', sheetRange);
+    console.log('GID:', config.paymentsSheetGid);
+    console.log('================================');
     
     try {
       await this.appendToSheet(
@@ -239,7 +236,15 @@ export class GoogleSheetsService {
         [paymentRecord], 
         config.paymentsSheetGid
       );
+      
+      console.log('=== PAYMENT RECORD WRITE SUCCESS ===');
+      console.log('Successfully wrote payment record to payments sheet');
+      console.log('===================================');
     } catch (error) {
+      console.log('=== PAYMENT RECORD WRITE ERROR ===');
+      console.error('Failed to write payment record:', error);
+      console.log('=================================');
+      
       if (error.message?.includes('SHEET_PROTECTED')) {
         throw new Error('SHEET_PROTECTED: Cannot write to protected Google Sheet. Please remove sheet protection or grant edit access.');
       }
