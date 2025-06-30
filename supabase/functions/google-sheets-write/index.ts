@@ -161,36 +161,16 @@ serve(async (req) => {
     }
 
     const data = await sheetsResponse.json()
-    
-    // Enhanced logging to capture API response details
-    console.log('=== GOOGLE SHEETS API RESPONSE ===')
-    console.log('Write successful for range:', range)
-    console.log('Updated Range from API:', data.updates?.updatedRange)
-    console.log('Updated Rows:', data.updates?.updatedRows)
-    console.log('Updated Columns:', data.updates?.updatedColumns)
-    console.log('Updated Cells:', data.updates?.updatedCells)
-    console.log('Values written:', values[0])  // Log first row for debugging
-    console.log('Expected vs Actual column analysis:')
-    if (data.updates?.updatedRange) {
-      const updatedRange = data.updates.updatedRange
-      console.log('  - Full updated range:', updatedRange)
-      // Extract the actual cell range to analyze column shift
-      const rangeMatch = updatedRange.match(/!([A-Z]+)(\d+):([A-Z]+)(\d+)/)
-      if (rangeMatch) {
-        console.log('  - Start column:', rangeMatch[1], '(expected: A)')
-        console.log('  - End column:', rangeMatch[3], '(expected: K)')
-        console.log('  - Row number:', rangeMatch[2])
-      }
-    }
-    console.log('=================================')
+    console.log('Write successful:', {
+      updatedRows: data.updates?.updatedRows || 0,
+      updatedRange: data.updates?.updatedRange
+    })
     
     return new Response(
       JSON.stringify({ 
         success: true, 
         updatedRows: data.updates?.updatedRows || 0,
-        updatedRange: data.updates?.updatedRange,
-        updatedColumns: data.updates?.updatedColumns,
-        updatedCells: data.updates?.updatedCells
+        updatedRange: data.updates?.updatedRange
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
